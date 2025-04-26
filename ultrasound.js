@@ -380,138 +380,107 @@ function loadFormData(){
   renderLive();
 }
 
-// ———————— mobile-friendly download handlers ————————
-
+// ———————— global download handlers ————————
 // wire up Download buttons
 document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
 document.getElementById('downloadDocBtn').addEventListener('click', downloadDoc);
 
-// ———————— styled download handlers ————————
-
+// generate an Excel-compatible .xlsx file from the live table
 function downloadExcel() {
-  // clone & inline-style everything
-  const orig = document.getElementById('liveTable');
-  const tbl  = orig.cloneNode(true);
-
-  // header styling
-  const hdr = tbl.querySelector('thead tr');
-  hdr.style.backgroundColor = '#a7abb7';
-  hdr.querySelectorAll('th').forEach(th => {
-    th.style.fontFamily = 'Cambria';
-    th.style.fontSize   = '11pt';
-    th.style.border     = '1px solid #00f2ff';
-  });
-
-  // row-group colouring + fonts + borders
-  const rows  = Array.from(tbl.querySelectorAll('tbody tr'));
-  const colors = [
-    '#f0f8ff','#fafad2','#e6e6fa','#fff0f5',
-    '#f0fff0','#f5f5f5','#fffaf0','#f5fffa',
-    '#f5f5dc','#f0ffff'
-  ];
-  let lastEq, colorIdx = -1;
-  rows.forEach(tr => {
-    const eqCell = tr.querySelector('td[rowspan]');
-    if (eqCell) {
-      lastEq = eqCell.textContent;
-      colorIdx = (colorIdx + 1) % colors.length;
-    }
-    Array.from(tr.cells).forEach(td => {
-      td.style.backgroundColor = colors[colorIdx];
-      td.style.fontFamily      = 'Cambria';
-      td.style.fontSize        = '11pt';
-      td.style.border          = '1px solid #00f2ff';
-    });
-  });
-
-  // collapse borders
-  tbl.style.borderCollapse = 'collapse';
-
-  // build full HTML for Excel
-  const preamble = 
-    '<html><head><meta charset="utf-8"><style>' +
-    'table{border-collapse:collapse;} ' +
-    '</style></head><body>';
-  const html = preamble + tbl.outerHTML + '</body></html>';
-
-  const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
-  const url  = URL.createObjectURL(blob);
-  const sub  = localStorage.getItem('selectedSubstation')||'Unknown';
-  const d    = new Date(), yyyy=d.getFullYear(), mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
-  const filename = `Ultrasound_${sub}_${yyyy}-${mm}-${dd}.xls`;
-
-  const isiOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-  if (isiOS) {
-    window.open(url, '_blank');
-  } else {
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const tableHTML = document.getElementById('liveTable').outerHTML;
+  const blob = new Blob(
+    ['\ufeff', tableHTML],
+    { type: 'application/vnd.ms-excel' }    // ← use the HTML/BIFF MIME
+  );
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  
+  // build filename as Ultrasound_<Substation>_<YYYY-MM-DD>.xlsx
+  const sub   = localStorage.getItem('selectedSubstation') || 'Unknown';
+  const date  = new Date().toISOString().split('T')[0];
+  a.download = `Ultrasound_${sub}_${date}.xls`;  // ← change extension to .xls
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
+// generate a Word .doc file from the live table HTML
 function downloadDoc() {
-  // clone & inline-style exactly as above…
-  const orig = document.getElementById('liveTable');
-  const tbl  = orig.cloneNode(true);
+  // 1) clone the live table so we can style it without touching the on-screen version
+  const original = document.getElementById('liveTable');
+  const clone    = original.cloneNode(true);
 
-  // header
-  const hdr = tbl.querySelector('thead tr');
-  hdr.style.backgroundColor = '#a7abb7';
-  hdr.querySelectorAll('th').forEach(th => {
+  // 2) header row styling
+  const headerRow = clone.querySelector('thead tr');
+  headerRow.style.backgroundColor = '#a7abb7';
+  headerRow.querySelectorAll('th').forEach(th => {
     th.style.fontFamily = 'Cambria';
     th.style.fontSize   = '11pt';
-    th.style.border     = '1px solid #00f2ff';
   });
 
-  // rows
-  const rows  = Array.from(tbl.querySelectorAll('tbody tr'));
-  const colors = [
+  // 3) row-group colouring & uniform Action-font sizing
+  const rows     = Array.from(clone.querySelectorAll('tbody tr'));
+  const colors   = [
     '#f0f8ff','#fafad2','#e6e6fa','#fff0f5',
     '#f0fff0','#f5f5f5','#fffaf0','#f5fffa',
     '#f5f5dc','#f0ffff'
   ];
-  let lastEq, colorIdx = -1;
+  let currentEq  = null;
+  let colorIndex = -1;
+  let lastEq     = null;
+
   rows.forEach(tr => {
+    // if this row has the merged Equipment cell, pick up its text
     const eqCell = tr.querySelector('td[rowspan]');
     if (eqCell) {
-      lastEq = eqCell.textContent;
-      colorIdx = (colorIdx + 1) % colors.length;
+      lastEq    = eqCell.textContent;
+      currentEq = null;    // reset so we pick a new colour for this group
     }
-    Array.from(tr.cells).forEach((td,ci,all) => {
-      td.style.backgroundColor = colors[colorIdx];
+    // when equipment changes, advance to next colour
+    if (lastEq !== currentEq) {
+      currentEq  = lastEq;
+      colorIndex = (colorIndex + 1) % colors.length;
+    }
+    // apply to every cell in the row
+    Array.from(tr.cells).forEach((td, colIdx, all) => {
+      td.style.backgroundColor = colors[colorIndex];
       td.style.fontFamily      = 'Cambria';
-      td.style.fontSize        = (ci===all.length-1?'9pt':'11pt');
-      td.style.border          = '1px solid #00f2ff';
+      // Action-column is always the last cell in each row
+      const isAction = (colIdx === all.length - 1);
+      td.style.fontSize        = isAction ? '9pt' : '11pt';
     });
   });
 
-  // wrap in Word HTML
-  const preamble = 
-    '<html xmlns:o="urn:schemas-microsoft-com:office:office" '+
-           'xmlns:w="urn:schemas-microsoft-com:office:word" '+
-           'xmlns="http://www.w3.org/TR/REC-html40">'+
-    '<head><meta charset="utf-8"><style>'+
-      '@page{size:landscape;}body{font-family:Cambria;font-size:11pt;}'+
+
+  // 4) wrap in Word HTML with landscape and font defaults
+  const preamble =
+    '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+           'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
+           'xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="utf-8">' +
+    '<style>' +
+      '@page { size: landscape; } ' +
+      'body { font-family: Cambria; font-size: 11pt; } ' +
     '</style></head><body>';
-  const html = preamble + tbl.outerHTML + '</body></html>';
+  const closing = '</body></html>';
 
-  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-  const url  = URL.createObjectURL(blob);
-  const sub  = localStorage.getItem('selectedSubstation')||'Unknown';
-  const d    = new Date(), dd2=String(d.getDate()).padStart(2,'0'), mm2=String(d.getMonth()+1).padStart(2,'0'), yyyy2=d.getFullYear();
-  const filename = `Ultrasound_${sub}_${dd2}-${mm2}-${yyyy2}.doc`;
-
-  const isiOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-  if (isiOS) {
-    window.open(url, '_blank');
-  } else {
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-  }
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const html = preamble + clone.outerHTML + closing;
+  const blob = new Blob(
+    ['\ufeff', html],
+    { type: 'application/msword' }
+  );
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href    = url;
+  
+  // build filename as Ultrasound_<Substation>_<YYYY-MM-DD>.doc
+  const sub   = localStorage.getItem('selectedSubstation') || 'Unknown';
+  const now   = new Date();
+const day   = String(now.getDate()).padStart(2, '0');
+const month = String(now.getMonth() + 1).padStart(2, '0');
+const year  = now.getFullYear();
+const date  = `${day}-${month}-${year}`;
+  a.download = `Ultrasound_${sub}_${date}.doc`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
