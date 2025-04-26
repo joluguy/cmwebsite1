@@ -1,0 +1,213 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotspot Entry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px 10px;
+      font-family: 'Orbitron', sans-serif;
+      background-color: #0a0f2c;
+      color: #fff;
+    }
+    .header {
+      width: 100%;
+      text-align: right;
+      padding: 10px 20px;
+      font-size: 14px;
+      color: #00f2ff;
+      background-color: #111836;
+      box-shadow: 0 0 10px #00f2ff;
+      margin-bottom: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #00f2ff;
+      text-shadow: 0 0 10px #00f2ff;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      display: block;
+      overflow-x: auto;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #00f2ff;
+      min-width: 120px;
+    }
+    th {
+      background-color: #111836;
+    }
+    select, input[type="text"], input[type="number"] {
+      padding: 5px;
+      width: 95%;
+      border-radius: 5px;
+      border: none;
+      background-color: #111836;
+      color: white;
+      font-family: Cambria, serif;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px 5px 0 0;
+      border: none;
+      border-radius: 8px;
+      background-color: #00f2ff;
+      color: black;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      box-shadow: 0 0 10px #00f2ff;
+    }
+    button:hover {
+      background-color: #0ff;
+    }
+    .remove-btn {
+      background-color: red;
+      color: white;
+      font-size: 14px;
+    }
+    .remove-btn:hover {
+      background-color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <div class="header" id="substationHeader"></div>
+  <h1>Hotspot Inspection Entry</h1>
+  <table id="hotspotTable">
+    <thead>
+      <tr>
+        <th>Serial No.</th>
+        <th>Hotspot Location</th>
+        <th>R Phase (°C)</th>
+        <th>Y Phase (°C)</th>
+        <th>B Phase (°C)</th>
+        <th>Neutral (°C)</th>
+        <th>Image Code</th>
+        <th>Remarks</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button onclick="addRow()">Add Row</button>
+  <button onclick="saveHotspotData()">Save</button>
+  <button onclick="window.location.href='switchyard.html'">Back</button>
+
+  <script>
+    const remarksOptions = ['PTR Side', 'Bus Side', 'CT Side', 'PT Side', 'VCB Side', 'Line Side', 'Station Service Transformer Side', 'LA Side', 'Incoming Side', 'Other'];
+
+    function createRemarksDropdown() {
+      const select = document.createElement('select');
+      remarksOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', function() {
+        if (this.value === 'Other') {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.placeholder = 'Enter other remarks';
+          this.replaceWith(input);
+        }
+      });
+      return select;
+    }
+
+    function addRow() {
+      const table = document.querySelector('#hotspotTable tbody');
+      const row = document.createElement('tr');
+
+      row.appendChild(document.createElement('td')).textContent = table.rows.length + 1;
+      row.appendChild(document.createElement('td')).appendChild(document.createElement('input')).placeholder = 'Location';
+      ['R', 'Y', 'B', 'Neutral'].forEach(() => {
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.placeholder = '°C';
+        td.appendChild(input);
+        row.appendChild(td);
+      });
+      row.appendChild(document.createElement('td')).appendChild(document.createElement('input')).placeholder = 'Image Code';
+      row.appendChild(document.createElement('td')).appendChild(createRemarksDropdown());
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'remove-btn';
+      delBtn.textContent = 'Delete';
+      delBtn.onclick = () => row.remove();
+      row.appendChild(document.createElement('td')).appendChild(delBtn);
+
+      table.appendChild(row);
+    }
+
+    function saveHotspotData() {
+      const data = [];
+      document.querySelectorAll('#hotspotTable tbody tr').forEach((row, i) => {
+        const cells = row.querySelectorAll('td');
+        data.push({
+          serial: i + 1,
+          location: cells[1].querySelector('input')?.value || '',
+          r: cells[2].querySelector('input')?.value || '',
+          y: cells[3].querySelector('input')?.value || '',
+          b: cells[4].querySelector('input')?.value || '',
+          n: cells[5].querySelector('input')?.value || '',
+          image: cells[6].querySelector('input')?.value || '',
+          remarks: cells[7].querySelector('select,input')?.value || ''
+        });
+      });
+      localStorage.setItem('hotspotData', JSON.stringify(data));
+      alert('Hotspot data saved successfully.');
+    }
+
+    function loadHotspotData() {
+      const saved = localStorage.getItem('hotspotData');
+      if (saved) {
+        const data = JSON.parse(saved);
+        data.forEach(d => {
+          addRow();
+          const row = document.querySelector('#hotspotTable tbody tr:last-child');
+          const cells = row.querySelectorAll('td');
+          cells[1].querySelector('input').value = d.location;
+          cells[2].querySelector('input').value = d.r;
+          cells[3].querySelector('input').value = d.y;
+          cells[4].querySelector('input').value = d.b;
+          cells[5].querySelector('input').value = d.n;
+          cells[6].querySelector('input').value = d.image;
+          const remarksField = cells[7].querySelector('select,input');
+          if (remarksField.tagName === 'SELECT') {
+            remarksField.value = d.remarks;
+            if (d.remarks === 'Other') {
+              const input = document.createElement('input');
+              input.type = 'text';
+              input.placeholder = 'Enter other remarks';
+              remarksField.replaceWith(input);
+            }
+          } else {
+            remarksField.value = d.remarks;
+          }
+        });
+      }
+    }
+
+    window.addEventListener('beforeunload', saveHotspotData);
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const substationName = localStorage.getItem("selectedSubstation") || "[Substation Not Set]";
+      document.getElementById("substationHeader").textContent = `Entering data for '${substationName}'`;
+      loadHotspotData();
+    });
+  </script>
+</body>
+</html>
