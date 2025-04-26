@@ -377,6 +377,10 @@ function loadFormData(){
     r.cells[8].querySelector('input').value = e.remarks;
   });
 
+  renderLive();
+}
+
+// ———————— global download handlers ————————
 // wire up Download buttons
 document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
 document.getElementById('downloadDocBtn').addEventListener('click', downloadDoc);
@@ -475,7 +479,4 @@ function downloadDoc() {
   a.download = `Ultrasound_${sub}_${date}.doc`;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-  renderLive();
 }
