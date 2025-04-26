@@ -475,7 +475,11 @@ function downloadDoc() {
   
   // build filename as Ultrasound_<Substation>_<YYYY-MM-DD>.doc
   const sub   = localStorage.getItem('selectedSubstation') || 'Unknown';
-  const date  = new Date().toISOString().split('T')[0];
+  const now   = new Date();
+const day   = String(now.getDate()).padStart(2, '0');
+const month = String(now.getMonth() + 1).padStart(2, '0');
+const year  = now.getFullYear();
+const date  = `${day}-${month}-${year}`;
   a.download = `Ultrasound_${sub}_${date}.doc`;
   a.click();
   URL.revokeObjectURL(url);
