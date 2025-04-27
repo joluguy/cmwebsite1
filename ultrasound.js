@@ -385,24 +385,37 @@ function loadFormData(){
 document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
 document.getElementById('downloadDocBtn').addEventListener('click', downloadDoc);
 
-// generate an Excel-compatible .xlsx file from the live table
 function downloadExcel() {
+  // 1) grab your live table HTML
   const tableHTML = document.getElementById('liveTable').outerHTML;
-  const blob = new Blob(
-    ['\ufeff', tableHTML],
-    { type: 'application/vnd.ms-excel' }    // ← use the HTML/BIFF MIME
-  );
+
+  // 2) wrap it in a full Excel-HTML document
+  const preamble =
+    '\uFEFF' + // UTF-8 BOM
+    '<html xmlns:x="urn:schemas-microsoft-com:office:excel">' +
+    '<head><meta charset="UTF-8"></head><body>';
+  const closing = '</body></html>';
+  const excelHTML = preamble + tableHTML + closing;
+
+  // 3) build a Blob with the old Excel MIME
+  const blob = new Blob([excelHTML], {
+    type: 'application/vnd.ms-excel'
+  });
+
+  // 4) create/download as .xls
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  
-  // build filename as Ultrasound_<Substation>_<YYYY-MM-DD>.xlsx
   const sub   = localStorage.getItem('selectedSubstation') || 'Unknown';
-  const date  = new Date().toISOString().split('T')[0];
-  a.download = `Ultrasound_${sub}_${date}.xls`;  // ← change extension to .xls
+  const now   = new Date();
+  const yyyy  = now.getFullYear();
+  const mm    = String(now.getMonth()+1).padStart(2,'0');
+  const dd    = String(now.getDate()).padStart(2,'0');
+  a.href        = url;
+  a.download    = `Ultrasound_${sub}_${dd}-${mm}-${yyyy}.xls`;
   a.click();
   URL.revokeObjectURL(url);
 }
+
 
 // generate a Word .doc file from the live table HTML
 function downloadDoc() {
