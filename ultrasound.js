@@ -386,32 +386,44 @@ document.getElementById('downloadExcelBtn').addEventListener('click', downloadEx
 document.getElementById('downloadDocBtn').addEventListener('click', downloadDoc);
 
 function downloadExcel() {
-  // 1) grab your live table HTML
   const tableHTML = document.getElementById('liveTable').outerHTML;
-
-  // 2) wrap it in a full Excel-HTML document
-  const preamble =
-    '\uFEFF' + // UTF-8 BOM
-    '<html xmlns:x="urn:schemas-microsoft-com:office:excel">' +
-    '<head><meta charset="UTF-8"></head><body>';
+  const preamble = 
+    '\uFEFF' +  // UTF-8 BOM
+    '<html ' +
+      'xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:x="urn:schemas-microsoft-com:office:excel" ' +
+      'xmlns="http://www.w3.org/TR/REC-html40">' +
+    '<head><meta charset="UTF-8"/>' +
+    '<!--[if gte mso 9]>' +
+      '<xml>' +
+        '<x:ExcelWorkbook>' +
+          '<x:ExcelWorksheets>' +
+            '<x:ExcelWorksheet>' +
+              '<x:Name>Sheet1</x:Name>' +
+              '<x:WorksheetOptions>' +
+                '<x:DisplayGridlines/>' +
+              '</x:WorksheetOptions>' +
+            '</x:ExcelWorksheet>' +
+          '</x:ExcelWorksheets>' +
+        '</x:ExcelWorkbook>' +
+      '</xml>' +
+    '<![endif]-->' +
+    '</head><body>';
   const closing = '</body></html>';
-  const excelHTML = preamble + tableHTML + closing;
+  const excelFile = preamble + tableHTML + closing;
 
-  // 3) build a Blob with the old Excel MIME
-  const blob = new Blob([excelHTML], {
-    type: 'application/vnd.ms-excel'
+  const blob = new Blob([excelFile], {
+    type: 'application/vnd.ms-excel;charset=UTF-8'
   });
-
-  // 4) create/download as .xls
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const sub   = localStorage.getItem('selectedSubstation') || 'Unknown';
   const now   = new Date();
-  const yyyy  = now.getFullYear();
-  const mm    = String(now.getMonth()+1).padStart(2,'0');
   const dd    = String(now.getDate()).padStart(2,'0');
-  a.href        = url;
-  a.download    = `Ultrasound_${sub}_${dd}-${mm}-${yyyy}.xls`;
+  const mm    = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy  = now.getFullYear();
+  a.href     = url;
+  a.download = `Ultrasound_${sub}_${dd}-${mm}-${yyyy}.xls`;
   a.click();
   URL.revokeObjectURL(url);
 }
