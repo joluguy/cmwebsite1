@@ -7,13 +7,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const sub = localStorage.getItem('selectedSubstation') || '[Substation Not Set]';
   document.getElementById('substationHeader').textContent = `Entering data for '${sub}'`;
 
-  loadHotspotData();
-  addRow();
-  renderLive();
+  // wire up downloads first (so they work even if init fails)
+  document.getElementById('downloadExcelBtn')?.addEventListener('click', downloadExcel);
+  document.getElementById('downloadDocBtn')?.addEventListener('click', downloadDoc);
+  document.getElementById('downloadPdfBtn')?.addEventListener('click', downloadPdf);
 
-  document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
-  document.getElementById('downloadDocBtn').addEventListener('click', downloadDoc);
-  document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdf);
+  // now initialize rows safely
+  try {
+    loadHotspotData();
+    addRow();
+    renderLive();
+  } catch (e) {
+    console.error('Hotspot init failed:', e);
+  }
 });
 
 // --- Options ---
@@ -122,21 +128,20 @@ function addRow() {
   tdLoc.append(sel1, sel2);
 
 // Ambient Temp (static cell with dynamic rowSpan)
-if (!window.ambientCell) {
-  const tdAmb = tr.insertCell();
-  const ambInput = document.createElement('input');
-  ambInput.id = 'ambientInput';
-  ambInput.type = 'number';
-  ambInput.placeholder = '°C';
-  ambInput.addEventListener('input', renderLive);
-  tdAmb.append(ambInput);
-  tdAmb.rowSpan = 1;
-  window.ambientCell = tdAmb;
-} else {
-  // placeholder + bump rowSpan
-  tr.insertCell();
-  window.ambientCell.rowSpan++;
-}
+  if (!window.ambientCell) {
+    const tdAmb = tr.insertCell();
+    const ambInput = document.createElement('input');
+    ambInput.id = 'ambientInput';
+    ambInput.type = 'number';
+    ambInput.placeholder = '°C';
+    ambInput.addEventListener('input', renderLive);
+    tdAmb.append(ambInput);
+    tdAmb.rowSpan = 1;
+    window.ambientCell = tdAmb;
+  } else {
+    // only increase span—do not insert an extra cell
+    window.ambientCell.rowSpan++;
+  }
 
   // Phases R/Y/B/Neutral
   for (let i = 0; i < 4; i++) {
@@ -260,7 +265,7 @@ function downloadExcel() {
   tbl.querySelectorAll('thead th').forEach(th=>{ th.style.fontFamily='Cambria'; th.style.fontSize='12pt'; th.style.fontWeight='bold'; th.style.backgroundColor='#d9d9d9'; th.style.color='#000'; });
   tbl.querySelectorAll('tbody tr').forEach(tr=>tr.querySelectorAll('td').forEach(td=>{ td.style.fontFamily='Cambria'; td.style.fontSize='12pt'; td.style.backgroundColor='#dce6f2'; td.style.color='#000'; }));
   const html='<html><head><meta charset="utf-8"></head><body>'+tbl.outerHTML+'</body></html>';
-  const blob=new Blob(['﻿',html],{type:'application/vnd.ms-excel'});
+  const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`Hotspot_${new Date().toISOString().split('T')[0]}.xls`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
