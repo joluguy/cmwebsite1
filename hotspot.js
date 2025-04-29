@@ -1,6 +1,7 @@
 // hotspot.js
 
 console.log('hotspot.js Loaded');
+window.ambientCell = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   const sub = localStorage.getItem('selectedSubstation') || '[Substation Not Set]';
@@ -80,7 +81,10 @@ function addRow() {
   let sel3 = null;
 
   function onLoc2Change() {
+    // 1) drop old third control
     if (sel3) { sel3.remove(); sel3 = null; }
+
+    // 2) choose new third control
     const v = sel2.value;
     if (['1st Isolator','1st DP','Isolator before CT','Isolator after VCB','Isolator before VCB'].includes(v)) {
       sel3 = createSelect(condMap.isolator);
@@ -88,42 +92,51 @@ function addRow() {
       sel3 = createSelect(condMap.feeder);
     } else if (v === 'Other') {
       sel3 = document.createElement('input');
-      sel3.type = 'text'; sel3.placeholder='Enter other...';
+      sel3.type = 'text';
+      sel3.placeholder = 'Enter other…';
     }
-    if (sel3) {
-  if (sel3.tagName === 'SELECT') {
-    // if it's a select, watch for “Other” and swap it out
-    sel3.addEventListener('change', function() {
-      if (this.value === 'Other') {
-        const inp3 = document.createElement('input');
-        inp3.type = 'text';
-        inp3.placeholder = 'Enter other…';
-        inp3.addEventListener('input', renderLive);
-        this.replaceWith(inp3);
-        renderLive();
-      }
-    });
-  } else {
-    // if it’s already an input, keep your live-render binding
-    sel3.addEventListener('input', renderLive);
-  }
-}
 
-    tdLoc.append(sel1, sel2);
+    // 3) if it’s a select, bind its own “Other” swap
+    if (sel3 && sel3.tagName === 'SELECT') {
+      sel3.addEventListener('change', function() {
+        if (this.value === 'Other') {
+          const inp3 = document.createElement('input');
+          inp3.type = 'text';
+          inp3.placeholder = 'Enter other…';
+          inp3.addEventListener('input', renderLive);
+          this.replaceWith(inp3);
+        }
+        renderLive();
+      });
+    }
+    // 4) always bind render on input
+    if (sel3 && sel3.tagName !== 'SELECT') {
+      sel3.addEventListener('input', renderLive);
+    }
+
+    // 5) append only the third control (never re-append sel1/sel2!)
     if (sel3) tdLoc.append(sel3);
     renderLive();
   }
 
   tdLoc.append(sel1, sel2);
 
-  // Ambient Temp
-  let amb = document.getElementById('ambientInput');
-  if (!amb) {
-    amb = document.createElement('input');
-    amb.id = 'ambientInput'; amb.type = 'number'; amb.placeholder = '°C';
-    amb.addEventListener('input', renderLive);
-  }
-  tr.insertCell().append(amb);
+// Ambient Temp (static cell with dynamic rowSpan)
+if (!window.ambientCell) {
+  const tdAmb = tr.insertCell();
+  const ambInput = document.createElement('input');
+  ambInput.id = 'ambientInput';
+  ambInput.type = 'number';
+  ambInput.placeholder = '°C';
+  ambInput.addEventListener('input', renderLive);
+  tdAmb.append(ambInput);
+  tdAmb.rowSpan = 1;
+  window.ambientCell = tdAmb;
+} else {
+  // placeholder + bump rowSpan
+  tr.insertCell();
+  window.ambientCell.rowSpan++;
+}
 
   // Phases R/Y/B/Neutral
   for (let i = 0; i < 4; i++) {
@@ -145,7 +158,17 @@ function addRow() {
 
   // Action
   const tdAct = tr.insertCell();
-  const delBtn = document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='remove-btn'; delBtn.onclick = () => { tr.remove(); renderLive(); };
+  const delBtn = document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='remove-btn'; delBtn.onclick = () => {
+  tr.remove();
+  if (window.ambientCell) {
+    window.ambientCell.rowSpan--;
+    if (window.ambientCell.rowSpan === 0) {
+      window.ambientCell.remove();
+      window.ambientCell = null;
+    }
+  }
+  renderLive();
+};
   tdAct.append(delBtn);
 
   tbody.append(tr);
@@ -217,7 +240,8 @@ function renderLive() {
     if (sides.length) text += ` (${sides.join(', ')})`;
     rrow.insertCell().textContent = text||'---';
     // Ambient
-    if (i===0) { const c=rrow.insertCell(); c.textContent=document.getElementById('ambientInput').value||'---'; c.rowSpan=n; }
+    if (i === 0) {const c = rrow.insertCell(); const ambEl = document.getElementById('ambientInput'); c.textContent = (ambEl ? ambEl.value : '') || '---'; c.rowSpan = n;}
+
     // R/Y/B/N
     ['r','y','b','n'].forEach((c,idx)=>{
       const v = tr.cells[3+idx].querySelector('input').value;
