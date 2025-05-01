@@ -53,6 +53,27 @@
   box-shadow:0 0 6px #00f2ff;
 }
 
+
+@media (max-width: 600px) {
+  /* Collapse all 4-col grids to 2 columns for mobile */
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 4px !important;
+  }
+  /* Smaller labels and inputs */
+  .grid label {
+    font-size: 10px !important;
+    padding: 2px !important;
+  }
+  /* Shrink the checkboxes themselves */
+  .grid input[type="checkbox"] {
+    transform: scale(0.8);
+    margin-right: 4px;
+  }
+}
+
+
+
   </style>
 </head>
 <body>
