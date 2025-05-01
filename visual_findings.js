@@ -76,18 +76,86 @@ function buildPTRForm(equip) {
   const c = document.getElementById('ptrFormContainer'); c.innerHTML='';
   const div = document.createElement('div'); div.className='form-container';
   // Oil Leakages
-  const osec = document.createElement('div'); osec.className='form-section';
-  osec.innerHTML=`<h2>${equip} Observations</h2><h3>Oil Leakages</h3>`;
-  oilLeakCols.forEach(col=>{
-    const colDiv = document.createElement('div'); colDiv.className='grid';
-    col.forEach(val=>{
-      const lbl = document.createElement('label'); const cb=document.createElement('input'); cb.type='checkbox'; cb.value=val;
+  // Oil Leakages Accordion
+  const osec = document.createElement('div');
+  osec.className = 'form-section';
+  osec.innerHTML = `<h2>${equip} Observations</h2><h3>Oil Leakages</h3>`;
+  // define groups
+  const groups = {
+    'Bushing O/L': [
+      'R Phase HV Bushing','Y Phase HV Bushing','B Phase HV Bushing',
+      'R Phase HV Bushing Turret','Y Phase HV Bushing Turret','B Phase HV Bushing Turret',
+      'R Phase LV Bushing','Y Phase LV Bushing','B Phase LV Bushing','Neutral Bushing',
+      'R Phase LV Bushing Turret','Y Phase LV Bushing Turret','B Phase LV Bushing Turret','Neutral Bushing Turret'
+    ],
+    'Top Tank O/L': [
+      'Top Tank near HV R Ph','Top Tank near HV Y Ph','Top Tank near HV B Ph',
+      'Top Tank near LV R Ph','Top Tank near LV Y Ph','Top Tank near LV B Ph',
+      'Top Tank near Neutral','Top Tank above MK Box','Top Tank above OLTC'
+    ],
+    'Radiator Valve O/L': [
+      'Upper side radiator valve near HV R Phase','Upper side radiator valve near HV Y Phase',
+      'Upper side radiator valve near HV B Phase','Lower side radiator valve near HV R Phase',
+      'Lower side radiator valve near HV Y Phase','Lower side radiator valve near HV B Phase',
+      'Upper side radiator valve near LV R Phase','Upper side radiator valve near LV Y Phase',
+      'Upper side radiator valve near LV B Phase','Upper side radiator valve near Neutral',
+      'Lower side radiator valve near LV R Phase','Lower side radiator valve near LV Y Phase',
+      'Lower side radiator valve near LV B Phase','Lower side radiator valve near Neutral'
+    ],
+    'Radiator Plug O/L': [
+      'Upper side radiator Plug near HV R Phase','Upper side radiator Plug near HV Y Phase',
+      'Upper side radiator Plug near HV B Phase','Lower side radiator Plug near HV R Phase',
+      'Lower side radiator Plug near HV Y Phase','Lower side radiator Plug near HV B Phase',
+      'Upper side radiator Plug near LV R Phase','Upper side radiator Plug near LV Y Phase',
+      'Upper side radiator Plug near LV B Phase','Upper side radiator Plug near Neutral',
+      'Lower side radiator Plug near LV R Phase','Lower side radiator Plug near LV Y Phase',
+      'Lower side radiator Plug near LV B Phase','Lower side radiator Plug near Neutral'
+    ],
+    'Other O/L': [
+      'Top Filtration Valve','Bottom Drain Valve','Top Sampling Valve','Conservator Tank Drain Valve',
+      'Tap Changer','MOG','POG','Buchholz Relay','OSR','Valve between Buchholz Relay & Conservator Tank'
+    ]
+  };
+
+  Object.entries(groups).forEach(([title, items]) => {
+    // header button
+    const btn = document.createElement('button');
+    btn.className = 'accordion-btn';
+    btn.textContent = title;
+    btn.onclick = () => {
+      // toggle active
+      osec.querySelectorAll('.accordion-btn').forEach(b=>b.classList.remove('active'));
+      osec.querySelectorAll('.grid').forEach(g=>g.style.display='none');
+      btn.classList.add('active');
+      grid.style.display = 'grid';
+    };
+    osec.appendChild(btn);
+
+    // grid
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    grid.style.display = 'none';
+    items.forEach(val=>{
+      const lbl = document.createElement('label');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = val;
       cb.onchange = () => savePTR(equip);
-      lbl.appendChild(cb); lbl.append(val);
-      colDiv.appendChild(lbl);
-    }); osec.appendChild(colDiv);
+      lbl.appendChild(cb);
+      lbl.append(val);
+      grid.appendChild(lbl);
+    });
+    osec.appendChild(grid);
   });
+
+  // activate first group by default
+  const firstBtn = osec.querySelector('.accordion-btn');
+  const firstGrid = osec.querySelector('.grid');
+  firstBtn.classList.add('active');
+  firstGrid.style.display = 'grid';
+
   div.appendChild(osec);
+
   // Other Findings
   const fsec=document.createElement('div'); fsec.className='form-section';
   fsec.innerHTML=`<h3>Other Findings</h3>`;
