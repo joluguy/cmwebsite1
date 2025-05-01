@@ -15,12 +15,16 @@
     .toggle-btn.active { background:#00f2ff; color:#000; }
     .section { display:none; }
     .section.active { display:block; }
+
     .button-container { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:20px; }
-    .button-container button { background:#00f2ff; color:#000; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; box-shadow:0 0 6px #00f2ff; }
-    .button-container button.active { background:#0ff; }
+    .button-container button { background: #111836; color: #00f2ff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; box-shadow: 0 0 6px #00f2ff;transition: background 0.3s, transform 0.3s;}
+
+    .button-container button.active {background: #00f2ff; color: #000; box-shadow: 0 0 8px #00f2ff; transform: scale(1.05); }
+
     .form-container { background:#111836; border:1px solid #00f2ff; border-radius:8px; padding:16px; margin-bottom:20px; }
     .form-section { margin-bottom:16px; }
     .form-section h2 { color:#00f2ff; margin-bottom:8px; }
+    .form-section h3 { text-align: center; color: #00f2ff; margin: 12px 0;}
     .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
     .grid label { display:flex; align-items:center; gap:6px; font-size:12px; }
     input[type=text], input[type=number] { width:100%; padding:6px; background:#0a0f2c; border:1px solid #00f2ff; color:#fff; border-radius:4px; }
@@ -28,6 +32,27 @@
     table.report th, table.report td { border:1px solid #00f2ff; padding:4px; font-size: 10px; }
     table.report th { background:#111836; color:#00f2ff; }
     .export-btns { display:flex; gap:10px; justify-content:center; margin-top:10px; }
+
+/* Accordion group buttons */
+.accordion-btn {
+  background:#111836;
+  color:#00f2ff;
+  border:none;
+  width:100%;
+  text-align:left;
+  padding:8px 12px;
+  margin:4px 0;
+  border-radius:4px;
+  cursor:pointer;
+  box-shadow:0 0 4px #00f2ff;
+  transition:background 0.3s;
+}
+.accordion-btn.active {
+  background:#00f2ff;
+  color:#000;
+  box-shadow:0 0 6px #00f2ff;
+}
+
   </style>
 </head>
 <body>
