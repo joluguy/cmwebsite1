@@ -28,6 +28,8 @@ const otherObsMap = {
 
 // Store entries
 let liveData = [];
+let currentEquipment = '';
+
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -60,6 +62,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('exportPdf').onclick = exportPdf;
 });
 
+
+  // Save current liveData to localStorage
+  document.getElementById('saveBtn').onclick = () => {
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    alert('Visual findings saved');
+  };
+  // Go back to switchyard page
+  document.getElementById('backBtn').onclick = () => {
+    window.location.href = 'switchyard.html';
+  };
+
+
+
 function switchSection(sec) {
   document.getElementById('ptrSection').classList.toggle('active', sec==='ptr');
   document.getElementById('otherSection').classList.toggle('active', sec==='other');
@@ -69,9 +84,17 @@ function switchSection(sec) {
 
 // PTR Handling
 function selectPTR(name) {
-  document.querySelectorAll('#ptrButtons button').forEach(b=>b.classList.toggle('active',b.textContent===name));
+  currentEquipment = name;
+  // Highlight only the clicked PTR button
+  document.querySelectorAll('#ptrButtons button').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === name);
+  });
   buildPTRForm(name);
 }
+
+
+
+
 function buildPTRForm(equip) {
   const c = document.getElementById('ptrFormContainer'); c.innerHTML='';
   const div = document.createElement('div'); div.className='form-container';
@@ -154,7 +177,17 @@ function buildPTRForm(equip) {
   firstBtn.classList.add('active');
   firstGrid.style.display = 'grid';
 
-  div.appendChild(osec);
+// Add manual Oil Leakage entry
+const customOilDiv = document.createElement('div');
+customOilDiv.className = 'custom-input';
+customOilDiv.innerHTML = `
+  <input id="customOilInput" placeholder="Other leakage..." type="text"/>
+  <button onclick="addCustomOil()">Add</button>`;
+osec.appendChild(customOilDiv);
+  
+
+
+div.appendChild(osec);
 
   // Other Findings
   const fsec=document.createElement('div'); fsec.className='form-section';
@@ -173,16 +206,34 @@ function buildPTRForm(equip) {
     }); fsec.appendChild(colDiv);
   });
   div.appendChild(fsec);
+
+  // — Add manual “Other finding…” entry field —
+  const customOtherDiv = document.createElement('div');
+  customOtherDiv.className = 'other-entry';
+  customOtherDiv.innerHTML = `
+    <input id="customOtherInput" placeholder="Other finding..." type="text"/>
+    <button onclick="addCustomOther()">Add</button>
+  `;
+  div.appendChild(customOtherDiv);
+
+
   c.appendChild(div);
   savePTR(equip);
 }
 
 function savePTR(equip) {
   // clear existing for this equip
-  liveData = liveData.filter(r=>r.equipment!==equip);
+  // Remove only the auto-generated rows, but keep manual ones
+liveData = liveData.filter(r => !(r.equipment === equip && !r.manual));
   // Oil
-  const oil = Array.from(document.querySelectorAll('#ptrFormContainer input[type=checkbox][value]:checked'))
-                .map(cb=>cb.value).filter(v=>oilDesc(v));
+  // Oil (only from the first form-section)
+  const oil = Array.from(
+    document.querySelectorAll(
+      '#ptrFormContainer .form-section:nth-of-type(1) input[type="checkbox"]:checked'
+    )
+  ).map(cb => cb.value);
+
+
   if(oil.length){
     const txt = oil.length>1?
       `Oil leakages were found from ${oil.join(' & ')} --- These oil leakages must be arrested.`:
@@ -245,7 +296,11 @@ function renderLive() {
 
   // Build rows in priority order, merging equipment cells
   priorities.forEach(equip => {
-    const group = liveData.filter(r => r.equipment === equip);
+    // grab all rows for this equip, but sort so manual:true always come last
+const group = liveData
+  .filter(r => r.equipment === equip)
+  .sort((a, b) => (a.manual ? 1 : 0) - (b.manual ? 1 : 0));
+
     if (!group.length) return;
     group.forEach((row, idx) => {
       if (idx === 0) {
@@ -306,4 +361,29 @@ function exportPdf() {
     .from(document.getElementById('liveTable'))
     .save();
 }
+
+// Helpers for manual entries
+function addCustomOil() {
+  const v = document.getElementById('customOilInput').value.trim();
+  if (!v) return;
+  const activeGrid = document.querySelector(
+    '#ptrFormContainer .form-section:nth-of-type(1) .grid[style*="display: grid"]'
+  );
+  const lbl = document.createElement('label');
+  const cb  = document.createElement('input');
+  cb.type = 'checkbox'; cb.value = v; cb.onchange = () => savePTR(currentEquipment);
+  lbl.appendChild(cb); lbl.append(v);
+  activeGrid.appendChild(lbl);
+  document.getElementById('customOilInput').value = '';
+  savePTR(currentEquipment);
+}
+
+function addCustomOther() {
+  const v = document.getElementById('customOtherInput').value.trim();
+  if (!v) return;
+  liveData.push({ equipment: currentEquipment, action: v, manual: true });
+  renderLive();
+  document.getElementById('customOtherInput').value = '';
+}
+
 
