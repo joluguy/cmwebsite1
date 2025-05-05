@@ -1,7 +1,7 @@
 // visual_findings.js
 // Definitions
 const ptrList = ['PTR-1','PTR-2','PTR-3','PTR-4','PTR-5','PTR-6','PTR-7'];
-const otherList = ['33KV CT','33KV PT','LA','33KV VCB','Other'];
+const otherList = ['SSTR','33KV CT','33KV PT','33KV VCB','LA','Other'];
 
 // Data for PTR forms
 const oilLeakCols = [
@@ -26,40 +26,93 @@ const otherObsMap = {
   'Other': ['Rusted Iron Structure','Rusted Isolator Handle','Rusted CT JB','Rusted PT JB','Rusted CT Body','Rusted PT Body','Rusted Earth Riser','Aerial Rail Pole Earth Spike Req.']
 };
 
+
+
+
+// ─── SSTR Other Findings descriptions ──────────────────────────────────────────
+const sstrOtherMap = {
+  'Silica Gel':
+    'Silica gel of the Conservator Tank breather must be replaced.',
+  'Oil Level Low':
+    'Low oil level has been found. Action must be taken to maintain desired oil level in the transformer.',
+  'Oil Level Check':
+    'Oil Level of the transformer could not be ascertained. Hence, the same is to be checked and if oil level is found low, then action must be taken to maintain desired oil level in the transformer.',
+  'MOG def.':
+    'MOG is found defective. Necessary action is to be taken.',
+  'MOG Conn. Open':
+    'MOG connections are found open. Necessary action is to be taken.',
+  'Rusted Body':
+    'Rust formation on the transformer body was observed. The same must be cleaned and painted with weather resisting non fading paint of Dark Admiralty Grey as per technical specification of WBSEDCL.',
+  'Rusted Conv. Tank':
+    'Rust formation on the conservator tank was observed. The same must be cleaned and painted with weather resisting non fading paint of Dark Admiralty Grey as per technical specification of WBSEDCL.',
+  'Rusted Radiator':
+    'Rust formation on the radiators were observed. The same must be cleaned and painted with weather resisting non fading paint of Dark Admiralty Grey as per technical specification of WBSEDCL.',
+  'Dust & Spider web':
+    'Dust and spider web deposited on the transformer must be cleaned.'
+};
+
+
+
+
+
+
 // Store entries
-let liveData = [];
+let liveData = JSON.parse(localStorage.getItem('visualFindings') || '[]');
 let currentEquipment = '';
 
+// Accumulate all SSTR Oil Leakage selections across clicks
+let sstrOilLeaks = new Set();
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('substationHeader').innerText = `Entering data for '${localStorage.getItem('selectedSubstation')||''}'`;
-  // Toggles
+
   const ptrToggle = document.getElementById('ptrToggle');
   const otherToggle = document.getElementById('otherToggle');
   ptrToggle.onclick = () => switchSection('ptr');
   otherToggle.onclick = () => switchSection('other');
-  // Buttons
+
   const ptrButtons = document.getElementById('ptrButtons');
   ptrList.forEach(name => {
     const btn = document.createElement('button'); btn.textContent = name;
     btn.onclick = () => selectPTR(name);
     ptrButtons.appendChild(btn);
   });
+
   const otherButtons = document.getElementById('otherButtons');
   otherList.forEach(name => {
     const btn = document.createElement('button'); btn.textContent = name;
     btn.onclick = () => selectOther(name);
     otherButtons.appendChild(btn);
   });
-  // init
+
   switchSection('ptr');
   selectPTR(ptrList[0]);
   renderLive();
-  // Exports
+
+  // Export + Save + Back
   document.getElementById('exportExcel').onclick = exportExcel;
   document.getElementById('exportDoc').onclick = exportDoc;
   document.getElementById('exportPdf').onclick = exportPdf;
+
+  document.getElementById('saveBtn').onclick = () => {
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    alert('Visual findings saved');
+  };
+
+  document.getElementById('backBtn').onclick = () => {
+    window.location.href = 'switchyard.html';
+  };
+
+  const resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) {
+    resetBtn.onclick = () => {
+      if (confirm("Are you sure you want to start a NEW inspection? All current data will be cleared.")) {
+        localStorage.removeItem('visualFindings');
+        location.reload();
+      }
+    };
+  }
 });
 
 
@@ -72,6 +125,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('backBtn').onclick = () => {
     window.location.href = 'switchyard.html';
   };
+
+
+
+// Global persistent sets for 33KV CT
+const ctOilLeakSet = new Set();
+const ctMissingSet = new Set();
+const ctOutSet = new Set();
+
+// Global persistent sets for 33KV PT
+const ptOilLeakSet = new Set();
+const ptMissingSet = new Set();
+const ptOutSet = new Set();
 
 
 
@@ -163,6 +228,7 @@ function buildPTRForm(equip) {
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.value = val;
+      cb.checked = liveData.some(r => r.equipment === equip && r.tags?.includes(cb.value));
       cb.onchange = () => savePTR(equip);
       lbl.appendChild(cb);
       lbl.append(val);
@@ -195,12 +261,29 @@ div.appendChild(osec);
   otherCols.forEach((col,i)=>{
     const colDiv=document.createElement('div'); colDiv.className='grid';
     col.forEach(val=>{
-      if(val==='OLTC Count'){
-        const lbl=document.createElement('label'); lbl.textContent=val; const inp=document.createElement('input'); inp.type='number'; inp.oninput=()=>savePTR(equip);
-        lbl.appendChild(inp); colDiv.appendChild(lbl);
-      } else {
+if(val === 'OLTC Count') {
+  const lbl = document.createElement('label');
+  lbl.textContent = val;
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  const existing = liveData.find(r => r.equipment === equip && r.action.includes('OLTC counter'));
+  if (existing) {
+    const match = existing.action.match(/\d+/);
+    if (match) inp.value = match[0];
+  }
+  inp.oninput = () => savePTR(equip);
+  lbl.appendChild(inp);
+  colDiv.appendChild(lbl);
+}
+
+      else {
         const lbl=document.createElement('label'); const cb=document.createElement('input'); cb.type='checkbox'; cb.value=val;
-        cb.onchange=()=>savePTR(equip);
+        cb.checked = liveData.some(r => 
+  r.equipment === equip && 
+  (r.tags?.includes(cb.value) || r.action === otherDesc(cb.value))
+);
+
+      cb.onchange = () => savePTR(equip);
         lbl.appendChild(cb); lbl.append(val); colDiv.appendChild(lbl);
       }
     }); fsec.appendChild(colDiv);
@@ -221,6 +304,641 @@ div.appendChild(osec);
   savePTR(equip);
 }
 
+
+
+// ─── Other Observations Handler ──────────────────────────────────────────────
+function selectOther(name) {
+  currentEquipment = name;
+  document.querySelectorAll('#otherButtons button').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === name);
+  });
+  buildOtherForm(name);
+}
+
+function buildOtherForm(equip) {
+  const c = document.getElementById('otherFormContainer');
+  c.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'form-container';
+
+  if (equip === 'SSTR') {
+    // Oil Leakages
+    const oilSec = document.createElement('div');
+    oilSec.className = 'form-section';
+    oilSec.innerHTML = '<h2>SSTR Observations</h2><h3>Oil Leakages</h3>';
+    const dd = document.createElement('div');
+    dd.style.display = 'flex'; dd.style.gap = '8px';
+    const selHVLV = document.createElement('select');
+    selHVLV.className = 'custom-select';
+    selHVLV.add(new Option('-- Select HV/LV --', '', true, true));
+    ['HV','LV'].forEach(o => selHVLV.add(new Option(o,o)));
+    const selPhase = document.createElement('select');
+    selPhase.className = 'custom-select';
+    selPhase.add(new Option('-- Select Phase --', '', true, true));
+    ['R-Phase','Y-Phase','B-Phase','Neutral'].forEach(o => selPhase.add(new Option(o,o)));
+    const selLoc = document.createElement('select');
+    selLoc.className = 'custom-select';
+    selLoc.add(new Option('-- Select Location --', '', true, true));
+    ['Bushing','Bushing Turret'].forEach(o => selLoc.add(new Option(o,o)));
+
+    dd.appendChild(labelEl('HV/LV', selHVLV));
+    dd.appendChild(labelEl('Phase', selPhase));
+    dd.appendChild(labelEl('Location', selLoc));
+    const addBtn = document.createElement('button');
+    addBtn.textContent = 'Add';
+
+    // when clicked, gather dropdown + checkboxes + manual, push one row
+   addBtn.onclick = () => {
+  // 1) Only preserve dropdown combos
+  const combo = `${selHVLV.value} ${selPhase.value} ${selLoc.value}`;
+  if (!sstrOilLeaks.has(combo)) {
+    sstrOilLeaks.add(combo);
+  }
+
+  // 2) Get ALL currently checked checkboxes and manually entered value
+  const checkboxVals = Array.from(
+    grid.querySelectorAll('input[type="checkbox"]:checked')
+  ).map(cb => cb.value);
+
+  const manualInput = oilSec.querySelector('input[type="text"]');
+  const manualVal = manualInput.value.trim();
+  if (manualVal) {
+    checkboxVals.push(manualVal);
+    manualInput.value = '';
+  }
+
+  // 3) Remove all previous checkbox/manual entries from sstrOilLeaks
+  const checkboxOptions = Array.from(
+    grid.querySelectorAll('input[type="checkbox"]')
+  ).map(cb => cb.value);
+
+  // Remove all existing checkbox-related entries
+  checkboxOptions.forEach(val => sstrOilLeaks.delete(val));
+
+  // Add back only currently checked/manual entries
+  checkboxVals.forEach(val => sstrOilLeaks.add(val));
+
+  // 4) Remove old Oil Leakage rows
+  liveData = liveData.filter(r =>
+    !(r.equipment === 'SSTR' && r.action.startsWith('Oil Leakage'))
+  );
+
+  // 5) Add new sentence if anything present
+  if (sstrOilLeaks.size) {
+    const arr = Array.from(sstrOilLeaks);
+    const multi = arr.length > 1;
+    const last = arr.pop();
+    const prefix = arr.join(', ') + (multi ? ' & ' : '');
+    const listText = prefix + last;
+    const text = multi
+      ? `Oil Leakages were found from ${listText}--- These oil leakages must be arrested.`
+      : `Oil Leakage was found from ${listText} --- This oil leakage must be arrested.`;
+    liveData.push({ equipment: 'SSTR', action: text, manual: false });
+  }
+
+  renderLive();
+  localStorage.setItem('visualFindings', JSON.stringify(liveData));
+};
+
+
+
+
+    dd.appendChild(addBtn);
+    oilSec.appendChild(dd);
+
+
+    // ─── grouped checkboxes for Oil Leakages (selection only) ────────────────
+    const items = [
+      'All LV Bushings','Tap Changer','Top Cover near HV Side','Top Cover near LV Side',
+      'Top Cover above MK Box','Top Cover above Tap Changer','Buchholz Relay','POG',
+      'Drain Valve','Sampling Valve'
+    ];
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    items.forEach(val => {
+      const lbl = document.createElement('label');
+      const cb  = document.createElement('input');
+      cb.type  = 'checkbox';
+      cb.value = val;
+      lbl.appendChild(cb);
+      lbl.append(val);
+      grid.appendChild(lbl);
+    });
+    oilSec.appendChild(grid);
+
+    // ─── auto-update on any change ───────────────────────────────────────────────
+    
+    grid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+  cb.checked = sstrOilLeaks.has(cb.value);
+  cb.onchange = () => {
+    const val = cb.value;
+    if (cb.checked) {
+      sstrOilLeaks.add(val);
+    } else {
+      sstrOilLeaks.delete(val);
+    }
+    updateSSTRLiveTable();
+  };
+});
+
+
+    // manual entry
+   const customOil = document.createElement('div');
+   customOil.innerHTML = `
+   <input placeholder="Other leakage..." type="text"/>
+   <button>Add</button>
+   `;
+   oilSec.appendChild(customOil);
+   customOil.querySelector('button').onclick = () => {
+  const input = customOil.querySelector('input');
+  const val = input.value.trim();
+  if (val) {
+    sstrOilLeaks.add(val);
+    input.value = '';
+    updateSSTRLiveTable();
+  }
+};
+    // ─── make the Oil Leakages section actually appear ────────────────────────
+    div.appendChild(oilSec);
+
+
+
+    // Other findings
+    const otherSec = document.createElement('div');
+    otherSec.className = 'form-section';
+    otherSec.innerHTML = '<h3>Other findings</h3>';
+    const ofItems = [
+      'Silica Gel','Oil Level Low','Oil Level Check','MOG def.','MOG Conn. Open',
+      'Rusted Body','Rusted Conv. Tank','Rusted Radiator','Dust & Spider web'
+    ];
+    const ofGrid = document.createElement('div'); ofGrid.className = 'grid';
+    ofItems.forEach(val => {
+      const lbl = document.createElement('label');
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val;
+    // add onchange to push liveData row
+cb.onchange = () => {
+  if (cb.checked) {
+    liveData.push({ equipment: 'SSTR', action: sstrOtherMap[val], manual: false });
+  } else {
+    liveData = liveData.filter(r =>
+      !(r.equipment === 'SSTR' && r.action === sstrOtherMap[val])
+    );
+  }
+  renderLive();
+  localStorage.setItem('visualFindings', JSON.stringify(liveData));
+};
+
+  lbl.appendChild(cb);
+  lbl.append(val);
+  ofGrid.appendChild(lbl);
+});
+    otherSec.appendChild(ofGrid);
+    const customOther = document.createElement('div');
+    customOther.innerHTML =
+      '<input placeholder="Other finding..." type="text"/><button>Add</button>';
+    otherSec.appendChild(customOther);
+const otherInput = customOther.querySelector('input');
+const otherAddBtn = customOther.querySelector('button');
+
+otherAddBtn.onclick = () => {
+  const val = otherInput.value.trim();
+  if (!val) return;
+
+  // Push to liveData with manual: true
+  liveData.push({ equipment: 'SSTR', action: val, manual: true });
+
+  renderLive();
+  localStorage.setItem('visualFindings', JSON.stringify(liveData));  // Refresh table
+  otherInput.value = ''; // Clear field
+};
+
+    div.appendChild(otherSec);
+  }
+
+else if (equip === '33KV CT') {
+  const sectionData = {
+    'Oil Leakages': {
+      entries: ctOilLeakSet,
+      textSingle: v => `Oil Leakage has been observed from ${v} --- This oil leakage must be arrested.`,
+      textMulti: vs => `Oil Leakages have been observed from ${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} --- These oil leakages must be arrested.`,
+      order: 1
+    },
+    'CT Missing': {
+      entries: ctMissingSet,
+      textSingle: v => `${v} was found to be missing. Necessary action is to be taken.`,
+      textMulti: vs => `${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} were found to be missing. Necessary action is to be taken.`,
+      order: 2
+    },
+    'CT Out of Ckt.': {
+      entries: ctOutSet,
+      textSingle: v => `${v} was found to be out of circuit. Necessary action is to be taken.`,
+      textMulti: vs => `${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} were found to be out of circuit. Necessary action is to be taken.`,
+      order: 3
+    }
+  };
+
+  const c = document.getElementById('otherFormContainer');
+  c.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'form-container';
+
+  Object.entries(sectionData).forEach(([title, config]) => {
+    const sec = document.createElement('div');
+    sec.className = 'form-section';
+    sec.innerHTML = `<h3>${title}</h3>`;
+    const dd2 = document.createElement('div');
+    dd2.style.display = 'flex';
+    dd2.style.gap = '8px';
+
+    const selLoc = document.createElement('select');
+    selLoc.className = 'custom-select';
+    selLoc.add(new Option('-- Select Location --', '', true, true));
+    ['PTR-1','PTR-2','PTR-3','PTR-4','PTR-5','PTR-6','PTR-7','Other']
+      .forEach(o => selLoc.add(new Option(o, o)));
+
+    const selPhase = document.createElement('select');
+    selPhase.className = 'custom-select';
+    selPhase.add(new Option('-- Select Phase --', '', true, true));
+    ['R-Phase','Y-Phase','B-Phase'].forEach(o => selPhase.add(new Option(o, o)));
+
+    const addBtn = document.createElement('button');
+    addBtn.textContent = 'Add';
+
+    addBtn.onclick = () => {
+      const loc = selLoc.value, phase = selPhase.value;
+      if (!loc || !phase) return;
+      const entry = `${loc} ${phase} CT`;
+      config.entries.add(entry);
+
+      // Replace only same-tag row for 33KV CT
+      liveData = liveData.filter(r => !(r.equipment === '33KV CT' && r.tag === title));
+
+      const arr = Array.from(config.entries);
+      const text = arr.length > 1 ? config.textMulti(arr) : config.textSingle(arr[0]);
+      liveData.push({ equipment: '33KV CT', action: text, manual: false, tag: title, order: config.order });
+
+      // Sort 33KV CT rows by order: Oil Leakages > CT Missing > CT Out
+      const ctEntries = liveData.filter(r => r.equipment === '33KV CT');
+      const rest = liveData.filter(r => r.equipment !== '33KV CT');
+      ctEntries.sort((a, b) => a.order - b.order);
+      liveData = [...rest, ...ctEntries];
+
+      renderLive();
+      localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    };
+
+    dd2.appendChild(labelEl('Location', selLoc));
+    dd2.appendChild(labelEl('Phase', selPhase));
+    dd2.appendChild(addBtn);
+    sec.appendChild(dd2);
+    div.appendChild(sec);
+  });
+
+  c.appendChild(div);
+}
+
+
+    else if (equip === '33KV PT') {
+      // ─── Configure the three PT sections ───────────────────────────────
+      const sectionData = {
+        'Oil Leakages': {
+          entries: ptOilLeakSet,
+          textSingle: v => `Oil Leakage has been observed from ${v} --- This oil leakage must be arrested.`,
+          textMulti:  vs => `Oil Leakages have been observed from ${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} --- These oil leakages must be arrested.`,
+          order: 1
+        },
+        'PT Missing': {
+          entries: ptMissingSet,
+          textSingle: v => `${v} was found to be missing. Necessary action is to be taken.`,
+          textMulti:  vs => `${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} were found to be missing. Necessary action is to be taken.`,
+          order: 2
+        },
+        'PT Out of Ckt.': {
+          entries: ptOutSet,
+          textSingle: v => `${v} was found to be out of circuit. Necessary action is to be taken.`,
+          textMulti:  vs => `${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} were found to be out of circuit. Necessary action is to be taken.`,
+          order: 3
+        }
+      };
+
+      // Clear & rebuild the form
+      const c = document.getElementById('otherFormContainer');
+      c.innerHTML = '';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'form-container';
+
+      // 1. Build each dropdown-Add section
+      Object.entries(sectionData).forEach(([title, cfg]) => {
+        const sec = document.createElement('div');
+        sec.className = 'form-section';
+        sec.innerHTML = `<h3>${title}</h3>`;
+        const dd = document.createElement('div');
+        dd.style.display = 'flex';
+        dd.style.gap     = '8px';
+
+        // Location dropdown
+        const selLoc = document.createElement('select');
+        selLoc.className = 'custom-select';
+        selLoc.add(new Option('-- Select Location --','',true,true));
+        ['PT-1','PT-2','PT-3','Bus PT-1','Bus PT-2','Bus PT-3','Other']
+          .forEach(o => selLoc.add(new Option(o,o)));
+        selLoc.onchange = e => { if (e.target.value==='Other') dd.appendChild(createManualEntry()); };
+
+        // Phase dropdown
+        const selPhase = document.createElement('select');
+        selPhase.className = 'custom-select';
+        selPhase.add(new Option('-- Select Phase --','',true,true));
+        ['R-Phase','Y-Phase','B-Phase']
+          .forEach(o => selPhase.add(new Option(o,o)));
+
+        // Add button behavior
+        const addBtn = document.createElement('button');
+        addBtn.textContent = 'Add';
+        addBtn.onclick = () => {
+          const loc   = selLoc.value,
+                phase = selPhase.value;
+          if (!loc || !phase) return;
+          const entry = `${loc} ${phase}`;
+          cfg.entries.add(entry);
+
+          // Remove old rows for this title
+          liveData = liveData.filter(r =>
+            !(r.equipment==='33KV PT' && r.tag===title)
+          );
+
+          // Push new combined sentence
+          const arr  = Array.from(cfg.entries);
+          const text = arr.length>1
+            ? cfg.textMulti(arr)
+            : cfg.textSingle(arr[0]);
+          liveData.push({
+            equipment: '33KV PT',
+            action:     text,
+            manual:    false,
+            tag:        title,
+            order:      cfg.order
+          });
+
+          // Re-sort only the 33KV PT group by order
+          const ptGroup = liveData.filter(r => r.equipment==='33KV PT');
+          const rest    = liveData.filter(r => r.equipment!=='33KV PT');
+          ptGroup.sort((a,b)=> a.order - b.order);
+          liveData = [...rest, ...ptGroup];
+
+          renderLive();
+          localStorage.setItem('visualFindings', JSON.stringify(liveData));
+        };
+
+        dd.appendChild(labelEl('Location', selLoc));
+        dd.appendChild(labelEl('Phase',    selPhase));
+        dd.appendChild(addBtn);
+        sec.appendChild(dd);
+        wrapper.appendChild(sec);
+      });
+
+      // 2. “All cleaned” checkbox (4th row)
+      const secAll = document.createElement('div');
+      secAll.className = 'form-section';
+      secAll.innerHTML = '<h3>Other</h3>';
+      const gridAll = document.createElement('div');
+      gridAll.className = 'grid';
+      const lblAll  = document.createElement('label');
+      const cbAll   = document.createElement('input');
+      cbAll.type    = 'checkbox';
+      cbAll.onchange = e => {
+        // remove any previous “AllClean” row
+        liveData = liveData.filter(r =>
+          !(r.equipment==='33KV PT' && r.tag==='AllClean')
+        );
+        if (cbAll.checked) {
+          liveData.push({
+            equipment:'33KV PT',
+            action:   'All 33KV PTs are to be cleaned',
+            manual:   false,
+            tag:      'AllClean',
+            order:    4
+          });
+          // re-sort PT group
+          const ptG = liveData.filter(r=>r.equipment==='33KV PT');
+          const rt  = liveData.filter(r=>r.equipment!=='33KV PT');
+          ptG.sort((a,b)=>a.order-b.order);
+          liveData = [...rt, ...ptG];
+        }
+        renderLive();
+        localStorage.setItem('visualFindings', JSON.stringify(liveData));
+      };
+      lblAll.appendChild(cbAll);
+      lblAll.append('All 33KV PTs are to be cleaned');
+      gridAll.appendChild(lblAll);
+      secAll.appendChild(gridAll);
+
+      // 3️. Manual “Other detail…” entry (always appear last)
+      const manualDiv = createManualEntry('Other detail…');
+      manualDiv.querySelector('button').onclick = () => {
+        const val = manualDiv.querySelector('input').value.trim();
+        if (!val) return;
+        liveData.push({
+          equipment:'33KV PT',
+          action:    val,
+          manual:    true
+        });
+        renderLive();
+        localStorage.setItem('visualFindings', JSON.stringify(liveData));
+        manualDiv.querySelector('input').value = '';
+      };
+      secAll.appendChild(manualDiv);
+
+      wrapper.appendChild(secAll);
+      c.appendChild(wrapper);
+    }
+
+    
+
+  // ─── 33KV VCB tab ───────────────────────────────────────────────────
+  else if (equip === '33KV VCB') {
+    const container = document.getElementById('otherFormContainer');
+    container.innerHTML = '';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'form-container';
+
+    // 1. “All VCB IR” checkbox
+    const secIR = document.createElement('div');
+    secIR.className = 'form-section';
+    const lblIR = document.createElement('label');
+    const cbIR  = document.createElement('input');
+    cbIR.type   = 'checkbox';
+    cbIR.onchange = () => {
+      // remove existing IR row
+      liveData = liveData.filter(r => !(r.equipment==='33KV VCB' && r.tag==='AllIR'));
+      if (cbIR.checked) {
+        liveData.push({
+          equipment: '33KV VCB',
+          action:    'IR to be measured between upper pad and lower pad of the all VCBs for checking of VI insulation and lower pad to earth for tie rod insulation. Meggering should be executed through 5 KV megger.',
+          manual:    false,
+          tag:       'AllIR',
+          order:     1
+        });
+        // keep 33KV VCB rows in order
+        const vcb = liveData.filter(r=>r.equipment==='33KV VCB');
+        const rest = liveData.filter(r=>r.equipment!=='33KV VCB');
+        vcb.sort((a,b)=>a.order-b.order);
+        liveData = [...rest, ...vcb];
+      }
+      renderLive();
+      localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    };
+    lblIR.appendChild(cbIR);
+    lblIR.append('All VCB IR');
+    secIR.appendChild(lblIR);
+    wrapper.appendChild(secIR);
+
+    // 2. “All VCB Cleaning” checkbox
+    const secClean = document.createElement('div');
+    secClean.className = 'form-section';
+    const lblClean = document.createElement('label');
+    const cbClean  = document.createElement('input');
+    cbClean.type   = 'checkbox';
+    cbClean.onchange = () => {
+      liveData = liveData.filter(r => !(r.equipment==='33KV VCB' && r.tag==='AllClean'));
+      if (cbClean.checked) {
+        liveData.push({
+          equipment: '33KV VCB',
+          action:    'All 33KV VCBs are to be cleaned.',
+          manual:    false,
+          tag:       'AllClean',
+          order:     2
+        });
+        const vcb = liveData.filter(r=>r.equipment==='33KV VCB');
+        const rest = liveData.filter(r=>r.equipment!=='33KV VCB');
+        vcb.sort((a,b)=>a.order-b.order);
+        liveData = [...rest, ...vcb];
+      }
+      renderLive();
+      localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    };
+    lblClean.appendChild(cbClean);
+    lblClean.append('All VCB Cleaning');
+    secClean.appendChild(lblClean);
+    wrapper.appendChild(secClean);
+
+    // 3. Manual “Other detail…” entry
+    const manualDiv = createManualEntry('Other detail…');
+    manualDiv.querySelector('button').onclick = () => {
+      const txt = manualDiv.querySelector('input').value.trim();
+      if (!txt) return;
+      liveData.push({
+        equipment: '33KV VCB',
+        action:    txt,
+        manual:    true
+      });
+      renderLive();
+      localStorage.setItem('visualFindings', JSON.stringify(liveData));
+      manualDiv.querySelector('input').value = '';
+    };
+    wrapper.appendChild(manualDiv);
+
+    container.appendChild(wrapper);
+  }
+
+  else if (equip === 'LA') {
+    ['LA Missing','LA Out of Ckt.'].forEach(title => {
+      const sec = document.createElement('div'); sec.className = 'form-section';
+      sec.innerHTML = `<h3>${title}</h3>`;
+      const dd = document.createElement('div');
+      dd.style.display = 'flex'; dd.style.gap = '8px';
+      const selLoc = document.createElement('select');
+      selLoc.className = 'custom-select';
+      selLoc.add(new Option('-- Select Location --', '', true, true));
+      ['PTR-1','PTR-2','PTR-3','PTR-4','PTR-5','PTR-6','PTR-7','Other']
+        .forEach(o => selLoc.add(new Option(o,o)));
+      selLoc.onchange = e => { if (e.target.value==='Other') dd.appendChild(createManualEntry()); };
+      const selPhase = document.createElement('select');
+      selPhase.className = 'custom-select';
+      selPhase.add(new Option('-- Select Phase --', '', true, true));
+      ['R-Phase','Y-Phase','B-Phase'].forEach(o => selPhase.add(new Option(o,o)));
+      const selHVLV = document.createElement('select');
+      selHVLV.className = 'custom-select';
+      selHVLV.add(new Option('-- Select HV/LV --', '', true, true));
+      ['HV LA','LV LA'].forEach(o => selHVLV.add(new Option(o,o)));
+      dd.appendChild(labelEl('Location', selLoc));
+      dd.appendChild(labelEl('Phase', selPhase));
+      dd.appendChild(labelEl('HV/LV', selHVLV));
+      const addBtn = document.createElement('button'); addBtn.textContent = 'Add';
+      dd.appendChild(addBtn);
+      sec.appendChild(dd);
+      div.appendChild(sec);
+    });
+    const secO = document.createElement('div'); secO.className = 'form-section';
+    secO.innerHTML = '<h3>Other</h3>';
+    const items = [
+      'All LAs are to be cleaned','All 33KV Earthing check',
+      'All 11KV Feeder Isolator Earthing Check','PTR-1 LV LA Earthing Check',
+      'PTR-2 LV LA Earthing Check','PTR-3 LV LA Earthing Check',
+      'PTR-4 LV LA Earthing Check','PTR-5 LV LA Earthing Check',
+      'PTR-6 LV LA Earthing Check','PTR-7 LV LA Earthing Check'
+    ];
+    const grid = document.createElement('div'); grid.className='grid';
+    items.forEach(val => {
+      const lbl = document.createElement('label');
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val;
+      lbl.appendChild(cb); lbl.append(val);
+      grid.appendChild(lbl);
+    });
+    secO.appendChild(grid);
+    secO.appendChild(createManualEntry('Other detail…'));
+    div.appendChild(secO);
+  }
+
+  else if (equip === 'Other') {
+    const sec1 = document.createElement('div'); sec1.className = 'form-section';
+    sec1.innerHTML = '<h3>Rusted Structure</h3>';
+    const items1 = ['Iron Structures','Isolator Handles','CT Body','PT Body','CT JB','PT JB','Earth Riser'];
+    const grid1 = document.createElement('div'); grid1.className='grid';
+    items1.forEach(val => {
+      const lbl = document.createElement('label');
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val;
+      lbl.appendChild(cb); lbl.append(val);
+      grid1.appendChild(lbl);
+    });
+    sec1.appendChild(grid1);
+    sec1.appendChild(createManualEntry('Other detail…'));
+    div.appendChild(sec1);
+
+    const sec2 = document.createElement('div'); sec2.className = 'form-section';
+    sec2.innerHTML = '<h3>Other</h3>';
+    const lbl2 = document.createElement('label');
+    const cb2 = document.createElement('input'); cb2.type='checkbox'; cb2.value='Aerial Earth Spike';
+    lbl2.appendChild(cb2); lbl2.append('Aerial Earth Spike');
+    const grid2 = document.createElement('div'); grid2.className='grid';
+    grid2.appendChild(lbl2);
+    sec2.appendChild(grid2);
+    sec2.appendChild(createManualEntry('Other detail…'));
+    div.appendChild(sec2);
+  }
+
+
+  c.appendChild(div);
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function labelEl(text, el) {
+  const wrap = document.createElement('div');
+  const lbl  = document.createElement('label');
+  lbl.textContent = text + ': ';
+  wrap.appendChild(lbl); wrap.appendChild(el);
+  return wrap;
+}
+
+function createManualEntry(placeholder = 'Other…') {
+  const d = document.createElement('div');
+  d.innerHTML = `<input placeholder="${placeholder}" type="text"/><button>Add</button>`;
+  return d;
+}
+
+
+
+
+
 function savePTR(equip) {
   // clear existing for this equip
   // Remove only the auto-generated rows, but keep manual ones
@@ -238,17 +956,18 @@ liveData = liveData.filter(r => !(r.equipment === equip && !r.manual));
     const txt = oil.length>1?
       `Oil leakages were found from ${oil.join(' & ')} --- These oil leakages must be arrested.`:
       `Oil leakage was found from ${oil[0]} --- This oil leakage must be arrested.`;
-    liveData.push({equipment:equip,action:txt});
+    liveData.push({equipment:equip,action:txt, tags: oil});
   }
   // Other
   document.querySelectorAll('#ptrFormContainer .form-section:nth-child(2) input').forEach(inp=>{
     if(inp.type==='checkbox'&&inp.checked){
-      liveData.push({equipment:equip,action:otherDesc(inp.value)});
+      liveData.push({equipment:equip,action:otherDesc(inp.value), tags: [inp.value]});
     } else if(inp.tagName==='INPUT'&&inp.type==='number'&&inp.value){
       liveData.push({equipment:equip,action:`OLTC counter was been found ${inp.value}. BDV of the oil of OLTC chamber to be checked. If BDV found low appropriate action to be taken.`});
     }
   });
   renderLive();
+  localStorage.setItem('visualFindings', JSON.stringify(liveData));
 }
 
 function oilDesc(v){ return true; }
@@ -296,10 +1015,24 @@ function renderLive() {
 
   // Build rows in priority order, merging equipment cells
   priorities.forEach(equip => {
-    // grab all rows for this equip, but sort so manual:true always come last
-const group = liveData
-  .filter(r => r.equipment === equip)
-  .sort((a, b) => (a.manual ? 1 : 0) - (b.manual ? 1 : 0));
+  
+
+
+
+// sort SSTR so that Oil Leakages come first, manuals last
+let group = liveData.filter(r => r.equipment === equip);
+if (equip === 'SSTR') {
+  group = group.sort((a, b) => {
+    const ma = a.manual ? 1 : 0, mb = b.manual ? 1 : 0;
+    if (ma !== mb) return ma - mb;
+    const oa = a.action.startsWith('Oil Leakage'), ob = b.action.startsWith('Oil Leakage');
+    if (oa !== ob) return oa ? -1 : 1;
+    return 0;
+  });
+} else {
+  group = group.sort((a, b) => (a.manual ? 1 : 0) - (b.manual ? 1 : 0));
+}
+
 
     if (!group.length) return;
     group.forEach((row, idx) => {
@@ -307,7 +1040,9 @@ const group = liveData
         html += `
           <tr>
             <td>${sl}</td>
-            <td rowspan="${group.length}">${equip}</td>
+            <td rowspan="${group.length}">
+            ${equip === 'SSTR' ? 'Station Service Transformer' : equip}
+            </td>
             <td>${row.action}</td>
           </tr>`;
       } else {
@@ -325,6 +1060,28 @@ const group = liveData
   tbody.innerHTML = html || '<tr><td colspan="3">No data yet.</td></tr>';
 }
 
+
+
+function updateSSTRLiveTable() {
+  liveData = liveData.filter(r =>
+    !(r.equipment === 'SSTR' && r.action.startsWith('Oil Leakage'))
+  );
+
+  if (sstrOilLeaks.size) {
+    const arr = Array.from(sstrOilLeaks);
+    const multi = arr.length > 1;
+    const last = arr.pop();
+    const prefix = arr.join(', ') + (multi ? ' & ' : '');
+    const listText = prefix + last;
+    const text = multi
+      ? `Oil Leakages were found from ${listText}--- These oil leakages must be arrested.`
+      : `Oil Leakage was found from ${listText} --- This oil leakage must be arrested.`;
+    liveData.push({ equipment: 'SSTR', action: text, manual: false });
+  }
+
+  renderLive();
+  localStorage.setItem('visualFindings', JSON.stringify(liveData));
+}
 
 // Export functions (using libraries loaded on page)
 function exportExcel() {
@@ -383,6 +1140,7 @@ function addCustomOther() {
   if (!v) return;
   liveData.push({ equipment: currentEquipment, action: v, manual: true });
   renderLive();
+  localStorage.setItem('visualFindings', JSON.stringify(liveData));
   document.getElementById('customOtherInput').value = '';
 }
 
