@@ -106,7 +106,22 @@
   box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
 }
 /* ───────────────────────────────────────────────────────────────────────────── */
+ /* ─── Mobile dropdown wrap & full-width on ≤600px ───────────────────────────── */
+ @media (max-width: 600px) {
+   /* allow the Location/Phase/HV-LV flex rows to wrap */
+   .form-container .form-section > div {
+     display: flex !important;
+     flex-wrap: wrap !important;
+     gap: 8px;
+   }
 
+   /* make each dropdown fill 100% of its row */
+   .form-container .form-section > div select {
+     flex: 1 1 100% !important;
+     width: 100% !important;
+     box-sizing: border-box;
+   }
+ }
 
   </style>
 </head>
