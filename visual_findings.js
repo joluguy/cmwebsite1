@@ -104,27 +104,23 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = 'switchyard.html';
   };
 
-  const resetBtn = document.getElementById('resetBtn');
-  if (resetBtn) {
-    resetBtn.onclick = () => {
-      if (confirm("Are you sure you want to start a NEW inspection? All current data will be cleared.")) {
-        localStorage.removeItem('visualFindings');
-        location.reload();
-      }
-    };
-  }
 });
 
 
-  // Save current liveData to localStorage
-  document.getElementById('saveBtn').onclick = () => {
-    localStorage.setItem('visualFindings', JSON.stringify(liveData));
-    alert('Visual findings saved');
-  };
-  // Go back to switchyard page
-  document.getElementById('backBtn').onclick = () => {
-    window.location.href = 'switchyard.html';
-  };
+// ── RESET BUTTON HANDLER ──
+;(function(){
+  const btn = document.getElementById('resetBtn');
+  if (!btn) {
+    console.warn('Reset button not found in DOM');
+    return;
+  }
+  btn.addEventListener('click', () => {
+    if (confirm("Are you sure you want to start a NEW inspection? All current data will be cleared.")) {
+      localStorage.removeItem('visualFindings');
+      location.reload();
+    }
+  });
+})();
 
 
 
@@ -137,6 +133,15 @@ const ctOutSet = new Set();
 const ptOilLeakSet = new Set();
 const ptMissingSet = new Set();
 const ptOutSet = new Set();
+
+// Global persistent sets for Lightning Arrestor
+const laMissingSet = new Set();
+const laOutSet     = new Set();
+
+// Global persistent set for Rusted Structures (Other → Rusted Structure)
+const rustedSet = new Set();
+
+
 
 
 
@@ -755,166 +760,424 @@ else if (equip === '33KV CT') {
     
 
   // ─── 33KV VCB tab ───────────────────────────────────────────────────
-  else if (equip === '33KV VCB') {
-    const container = document.getElementById('otherFormContainer');
-    container.innerHTML = '';
-    const wrapper = document.createElement('div');
-    wrapper.className = 'form-container';
+else if (equip === '33KV VCB') {
+  const container = document.getElementById('otherFormContainer');
+  container.innerHTML = '';
 
-    // 1. “All VCB IR” checkbox
-    const secIR = document.createElement('div');
-    secIR.className = 'form-section';
-    const lblIR = document.createElement('label');
-    const cbIR  = document.createElement('input');
-    cbIR.type   = 'checkbox';
-    cbIR.onchange = () => {
-      // remove existing IR row
-      liveData = liveData.filter(r => !(r.equipment==='33KV VCB' && r.tag==='AllIR'));
-      if (cbIR.checked) {
-        liveData.push({
-          equipment: '33KV VCB',
-          action:    'IR to be measured between upper pad and lower pad of the all VCBs for checking of VI insulation and lower pad to earth for tie rod insulation. Meggering should be executed through 5 KV megger.',
-          manual:    false,
-          tag:       'AllIR',
-          order:     1
-        });
-        // keep 33KV VCB rows in order
-        const vcb = liveData.filter(r=>r.equipment==='33KV VCB');
-        const rest = liveData.filter(r=>r.equipment!=='33KV VCB');
-        vcb.sort((a,b)=>a.order-b.order);
-        liveData = [...rest, ...vcb];
-      }
-      renderLive();
-      localStorage.setItem('visualFindings', JSON.stringify(liveData));
-    };
-    lblIR.appendChild(cbIR);
-    lblIR.append('All VCB IR');
-    secIR.appendChild(lblIR);
-    wrapper.appendChild(secIR);
+  const wrapper = document.createElement('div');
+  wrapper.className = 'form-container';
 
-    // 2. “All VCB Cleaning” checkbox
-    const secClean = document.createElement('div');
-    secClean.className = 'form-section';
-    const lblClean = document.createElement('label');
-    const cbClean  = document.createElement('input');
-    cbClean.type   = 'checkbox';
-    cbClean.onchange = () => {
-      liveData = liveData.filter(r => !(r.equipment==='33KV VCB' && r.tag==='AllClean'));
-      if (cbClean.checked) {
-        liveData.push({
-          equipment: '33KV VCB',
-          action:    'All 33KV VCBs are to be cleaned.',
-          manual:    false,
-          tag:       'AllClean',
-          order:     2
-        });
-        const vcb = liveData.filter(r=>r.equipment==='33KV VCB');
-        const rest = liveData.filter(r=>r.equipment!=='33KV VCB');
-        vcb.sort((a,b)=>a.order-b.order);
-        liveData = [...rest, ...vcb];
-      }
-      renderLive();
-      localStorage.setItem('visualFindings', JSON.stringify(liveData));
-    };
-    lblClean.appendChild(cbClean);
-    lblClean.append('All VCB Cleaning');
-    secClean.appendChild(lblClean);
-    wrapper.appendChild(secClean);
+  // ─── “All VCB IR” checkbox ───────────────────────────────────────────────
+  const secIR = document.createElement('div');
+  secIR.className = 'form-section';
 
-    // 3. Manual “Other detail…” entry
-    const manualDiv = createManualEntry('Other detail…');
-    manualDiv.querySelector('button').onclick = () => {
-      const txt = manualDiv.querySelector('input').value.trim();
-      if (!txt) return;
+  const lblIR = document.createElement('label');
+  const cbIR  = document.createElement('input');
+  // Restore checked-state if an “AllIR” row already exists
+  cbIR.checked = liveData.some(r =>
+    r.equipment === '33KV VCB' && r.tag === 'AllIR'
+  );
+  cbIR.type = 'checkbox';
+  cbIR.onchange = () => {
+    // remove any existing AllIR row
+    liveData = liveData.filter(r =>
+      !(r.equipment === '33KV VCB' && r.tag === 'AllIR')
+    );
+    if (cbIR.checked) {
       liveData.push({
         equipment: '33KV VCB',
-        action:    txt,
-        manual:    true
+        action:    'IR to be measured between upper pad and lower pad of the all VCBs for checking of VI insulation and lower pad to earth for tie rod insulation. Meggering should be executed through 5 KV megger.',
+        manual:    false,
+        tag:       'AllIR',
+        order:     1
       });
+      // re-sort only the VCB group
+      const vcb  = liveData.filter(r => r.equipment === '33KV VCB');
+      const rest = liveData.filter(r => r.equipment !== '33KV VCB');
+      vcb.sort((a, b) => a.order - b.order);
+      liveData = [...rest, ...vcb];
+    }
+    renderLive();
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+  };
+
+  lblIR.appendChild(cbIR);
+  lblIR.append(' All VCB IR');
+  secIR.appendChild(lblIR);
+  wrapper.appendChild(secIR);
+
+  // ─── “All VCB Cleaning” checkbox ────────────────────────────────────────
+  const secClean = document.createElement('div');
+  secClean.className = 'form-section';
+
+  const lblClean = document.createElement('label');
+  const cbClean  = document.createElement('input');
+  // Restore checked-state if an “AllClean” row already exists
+  cbClean.checked = liveData.some(r =>
+    r.equipment === '33KV VCB' && r.tag === 'AllClean'
+  );
+  cbClean.type = 'checkbox';
+  cbClean.onchange = () => {
+    liveData = liveData.filter(r =>
+      !(r.equipment === '33KV VCB' && r.tag === 'AllClean')
+    );
+    if (cbClean.checked) {
+      liveData.push({
+        equipment: '33KV VCB',
+        action:    'All 33KV VCBs are to be cleaned.',
+        manual:    false,
+        tag:       'AllClean',
+        order:     2
+      });
+      const vcb  = liveData.filter(r => r.equipment === '33KV VCB');
+      const rest = liveData.filter(r => r.equipment !== '33KV VCB');
+      vcb.sort((a, b) => a.order - b.order);
+      liveData = [...rest, ...vcb];
+    }
+    renderLive();
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+  };
+
+  lblClean.appendChild(cbClean);
+  lblClean.append(' All VCB Cleaning');
+  secClean.appendChild(lblClean);
+  wrapper.appendChild(secClean);
+
+  // ─── Manual “Other detail…” entry ───────────────────────────────────────
+  const manualDiv = createManualEntry('Other detail…');
+  manualDiv.querySelector('button').onclick = () => {
+    const txt = manualDiv.querySelector('input').value.trim();
+    if (!txt) return;
+    liveData.push({
+      equipment: '33KV VCB',
+      action:    txt,
+      manual:    true
+    });
+    renderLive();
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    manualDiv.querySelector('input').value = '';
+  };
+  wrapper.appendChild(manualDiv);
+
+  container.appendChild(wrapper);
+}
+
+
+
+else if (equip === 'LA') {
+  // configure missing / out-of-circuit sections
+  const sectionData = {
+    'LA Missing': {
+      entries:  laMissingSet,
+      textSingle: v => `${v} was found to be missing. Necessary action is to be taken.`,
+      textMulti:  vs => `${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} were found to be missing. Necessary action is to be taken.`,
+      order: 1
+    },
+    'LA Out of Ckt.': {
+      entries:  laOutSet,
+      textSingle: v => `${v} was found to be out of circuit. Necessary action is to be taken.`,
+      textMulti:  vs => `${vs.join(', ').replace(/, ([^,]*)$/, ' & $1')} were found to be out of circuit. Necessary action is to be taken.`,
+      order: 2
+    }
+  };
+
+  const c = document.getElementById('otherFormContainer');
+  c.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'form-container';
+
+  // build the two dropdown+Add sections
+  Object.entries(sectionData).forEach(([title, cfg]) => {
+    const sec = document.createElement('div');
+    sec.className = 'form-section';
+    sec.innerHTML = `<h3>${title}</h3>`;
+    const dd = document.createElement('div');
+    dd.style.display = 'flex'; dd.style.gap = '8px';
+
+    // Location dropdown
+    const selLoc = document.createElement('select');
+    selLoc.className = 'custom-select';
+    selLoc.add(new Option('-- Select Location --','',true,true));
+    ['PTR-1','PTR-2','PTR-3','PTR-4','PTR-5','PTR-6','PTR-7','Other']
+      .forEach(o => selLoc.add(new Option(o,o)));
+
+    // Phase dropdown
+    const selPhase = document.createElement('select');
+    selPhase.className = 'custom-select';
+    selPhase.add(new Option('-- Select Phase --','',true,true));
+    ['R-Phase','Y-Phase','B-Phase'].forEach(o => selPhase.add(new Option(o,o)));
+
+    // HV/LV dropdown
+    const selHVLV = document.createElement('select');
+    selHVLV.className = 'custom-select';
+    selHVLV.add(new Option('-- Select HV/LV --','',true,true));
+    ['HV LA','LV LA'].forEach(o => selHVLV.add(new Option(o,o)));
+
+    dd.appendChild(labelEl('Location', selLoc));
+    dd.appendChild(labelEl('Phase',    selPhase));
+    dd.appendChild(labelEl('HV/LV',     selHVLV));
+
+    // Add button logic
+    const addBtn = document.createElement('button');
+    addBtn.textContent = 'Add';
+    addBtn.onclick = () => {
+      const loc  = selLoc.value, phase = selPhase.value, hvlv   = selHVLV.value;
+      if (!loc || !phase || !hvlv) return;
+      const entry = `${loc} ${phase} ${hvlv}`;
+      cfg.entries.add(entry);
+      // remove previous rows for this section
+      liveData = liveData.filter(r => !(r.equipment==='LA' && r.tag===title));
+      const arr  = Array.from(cfg.entries);
+      const txt  = arr.length>1 ? cfg.textMulti(arr) : cfg.textSingle(arr[0]);
+      liveData.push({
+        equipment: 'LA',
+        action:    txt,
+        manual:    false,
+        tag:       title,
+        order:     cfg.order
+      });
+      // re-sort only the LA group
+      const laGrp = liveData.filter(r => r.equipment==='LA');
+      const rest  = liveData.filter(r => r.equipment!=='LA');
+      laGrp.sort((a,b)=> a.order - b.order);
+      liveData = [...rest, ...laGrp];
       renderLive();
       localStorage.setItem('visualFindings', JSON.stringify(liveData));
-      manualDiv.querySelector('input').value = '';
     };
-    wrapper.appendChild(manualDiv);
+    dd.appendChild(addBtn);
+    sec.appendChild(dd);
+    wrapper.appendChild(sec);
+  });
 
-    container.appendChild(wrapper);
-  }
+  // build the Other checkboxes (cleaning + earthing)
+  const secO = document.createElement('div');
+  secO.className = 'form-section';
+  secO.innerHTML = '<h3>Other</h3>';
+  const items = [
+    'All LAs are to be cleaned',
+    'All 33KV Earthing check',
+    'All 11KV Feeder Isolator Earthing Check',
+    'PTR-1 LV LA Earthing Check','PTR-2 LV LA Earthing Check','PTR-3 LV LA Earthing Check',
+    'PTR-4 LV LA Earthing Check','PTR-5 LV LA Earthing Check','PTR-6 LV LA Earthing Check',
+    'PTR-7 LV LA Earthing Check'
+  ];
+  const gridO = document.createElement('div');
+  gridO.className = 'grid';
 
-  else if (equip === 'LA') {
-    ['LA Missing','LA Out of Ckt.'].forEach(title => {
-      const sec = document.createElement('div'); sec.className = 'form-section';
-      sec.innerHTML = `<h3>${title}</h3>`;
-      const dd = document.createElement('div');
-      dd.style.display = 'flex'; dd.style.gap = '8px';
-      const selLoc = document.createElement('select');
-      selLoc.className = 'custom-select';
-      selLoc.add(new Option('-- Select Location --', '', true, true));
-      ['PTR-1','PTR-2','PTR-3','PTR-4','PTR-5','PTR-6','PTR-7','Other']
-        .forEach(o => selLoc.add(new Option(o,o)));
-      selLoc.onchange = e => { if (e.target.value==='Other') dd.appendChild(createManualEntry()); };
-      const selPhase = document.createElement('select');
-      selPhase.className = 'custom-select';
-      selPhase.add(new Option('-- Select Phase --', '', true, true));
-      ['R-Phase','Y-Phase','B-Phase'].forEach(o => selPhase.add(new Option(o,o)));
-      const selHVLV = document.createElement('select');
-      selHVLV.className = 'custom-select';
-      selHVLV.add(new Option('-- Select HV/LV --', '', true, true));
-      ['HV LA','LV LA'].forEach(o => selHVLV.add(new Option(o,o)));
-      dd.appendChild(labelEl('Location', selLoc));
-      dd.appendChild(labelEl('Phase', selPhase));
-      dd.appendChild(labelEl('HV/LV', selHVLV));
-      const addBtn = document.createElement('button'); addBtn.textContent = 'Add';
-      dd.appendChild(addBtn);
-      sec.appendChild(dd);
-      div.appendChild(sec);
-    });
-    const secO = document.createElement('div'); secO.className = 'form-section';
-    secO.innerHTML = '<h3>Other</h3>';
-    const items = [
-      'All LAs are to be cleaned','All 33KV Earthing check',
-      'All 11KV Feeder Isolator Earthing Check','PTR-1 LV LA Earthing Check',
-      'PTR-2 LV LA Earthing Check','PTR-3 LV LA Earthing Check',
-      'PTR-4 LV LA Earthing Check','PTR-5 LV LA Earthing Check',
-      'PTR-6 LV LA Earthing Check','PTR-7 LV LA Earthing Check'
-    ];
-    const grid = document.createElement('div'); grid.className='grid';
-    items.forEach(val => {
+  items.forEach((val, idx) => {
+    const lbl = document.createElement('label');
+    const cb  = document.createElement('input');
+    cb.type  = 'checkbox';
+    const tag = val;
+
+    // restore previous state
+    cb.checked = liveData.some(r => r.equipment==='LA' && r.tag===tag);
+
+    cb.onchange = () => {
+      // remove any existing row for this tag
+      liveData = liveData.filter(r => !(r.equipment==='LA' && r.tag===tag));
+      if (cb.checked) {
+        let action = '';
+        switch (val) {
+          case 'All LAs are to be cleaned':
+            action = 'All LAs are to be cleaned.';
+            break;
+          case 'All 33KV Earthing check':
+            action = 'Earthing of all 33KV LAs are to be checked.';
+            break;
+          case 'All 11KV Feeder Isolator Earthing Check':
+            action = 'Earthing of all 11KV Feeder Isolators\' LAs are to be checked.';
+            break;
+          default:
+            // for PTR-x LV LA Earthing Check
+            action = `Earthing of ${val.replace(' Earthing Check','')} is to be checked.`;
+        }
+        liveData.push({
+          equipment: 'LA',
+          action:    action,
+          manual:    false,
+          tag:       tag,
+          order:     idx + 3  // picks up after the two dropdown sections
+        });
+        // re-sort LA group
+        const laGrp = liveData.filter(r=>r.equipment==='LA');
+        const rest  = liveData.filter(r=>r.equipment!=='LA');
+        laGrp.sort((a,b)=> a.order - b.order);
+        liveData = [...rest, ...laGrp];
+      }
+      renderLive();
+      localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    };
+
+    lbl.appendChild(cb);
+    lbl.append(val);
+    gridO.appendChild(lbl);
+  });
+
+  secO.appendChild(gridO);
+
+  // manual Other-detail… entry
+  const manualDiv = createManualEntry('Other detail…');
+  manualDiv.querySelector('button').onclick = () => {
+    const v = manualDiv.querySelector('input').value.trim();
+    if (!v) return;
+    liveData.push({ equipment:'LA', action:v, manual:true });
+    renderLive();
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    manualDiv.querySelector('input').value = '';
+  };
+  secO.appendChild(manualDiv);
+
+  wrapper.appendChild(secO);
+  c.appendChild(wrapper);
+}
+
+  
+
+
+
+
+
+else if (equip === 'Other') {
+  const c = document.getElementById('otherFormContainer');
+  c.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'form-container';
+
+  // ─── Rusted Structure section ───────────────────────────────────────────
+  const secRust = document.createElement('div');
+  secRust.className = 'form-section';
+  secRust.innerHTML = '<h3>Rusted Structure</h3>';
+  const gridRust = document.createElement('div');
+  gridRust.className = 'grid';
+  ['Iron Structures','Isolator Handles','CT Body','PT Body','CT JB','PT JB','Earth Riser']
+    .forEach(val => {
       const lbl = document.createElement('label');
-      const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val;
-      lbl.appendChild(cb); lbl.append(val);
-      grid.appendChild(lbl);
+      const cb  = document.createElement('input');
+      cb.type  = 'checkbox';
+      cb.value = val;
+      cb.checked = rustedSet.has(val);
+      cb.onchange = () => {
+        if (cb.checked) rustedSet.add(val);
+        else rustedSet.delete(val);
+        // rebuild single “Rusted Structures” row
+        liveData = liveData.filter(r =>
+          !(r.equipment==='Rusted Structures' && r.tag==='Rusted Structure')
+        );
+        if (rustedSet.size) {
+          const arr   = Array.from(rustedSet);
+          const multi = arr.length > 1;
+          const last  = arr.pop();
+          const prefix= multi ? arr.join(', ') + ' & ' : '';
+          const list  = prefix + last;
+          const text  = multi
+            ? `Rust formations on ${list} at switchyard were observed. The same must be cleaned and painted with red lead and Zinc.`
+            : `Rust formation on ${list} at switchyard was observed. The same must be cleaned and painted with red lead and Zinc.`;
+          liveData.push({
+            equipment: 'Rusted Structures',
+            action:     text,
+            manual:     false,
+            tag:        'Rusted Structure',
+            order:      1
+          });
+        }
+        renderLive();
+        localStorage.setItem('visualFindings', JSON.stringify(liveData));
+      };
+      lbl.appendChild(cb);
+      lbl.append(val);
+      gridRust.appendChild(lbl);
     });
-    secO.appendChild(grid);
-    secO.appendChild(createManualEntry('Other detail…'));
-    div.appendChild(secO);
-  }
+  secRust.appendChild(gridRust);
 
-  else if (equip === 'Other') {
-    const sec1 = document.createElement('div'); sec1.className = 'form-section';
-    sec1.innerHTML = '<h3>Rusted Structure</h3>';
-    const items1 = ['Iron Structures','Isolator Handles','CT Body','PT Body','CT JB','PT JB','Earth Riser'];
-    const grid1 = document.createElement('div'); grid1.className='grid';
-    items1.forEach(val => {
-      const lbl = document.createElement('label');
-      const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val;
-      lbl.appendChild(cb); lbl.append(val);
-      grid1.appendChild(lbl);
+  // manual Rusted Structure entry
+  const manualRust = createManualEntry('Other detail…');
+  manualRust.querySelector('button').onclick = () => {
+    const inp = manualRust.querySelector('input');
+    const v   = inp.value.trim();
+    if (!v) return;
+    rustedSet.add(v);
+    inp.value = '';
+    // reuse same rebuild logic
+    liveData = liveData.filter(r =>
+      !(r.equipment==='Rusted Structures' && r.tag==='Rusted Structure')
+    );
+    const arr   = Array.from(rustedSet);
+    const multi = arr.length > 1;
+    const last  = arr.pop();
+    const prefix= multi ? arr.join(', ') + ' & ' : '';
+    const list  = prefix + last;
+    const text  = multi
+      ? `Rust formations on ${list} at switchyard were observed. The same must be cleaned and painted with red lead and Zinc.`
+      : `Rust formation on ${list} at switchyard was observed. The same must be cleaned and painted with red lead and Zinc.`;
+    liveData.push({
+      equipment: 'Rusted Structures',
+      action:     text,
+      manual:     false,
+      tag:        'Rusted Structure',
+      order:      1
     });
-    sec1.appendChild(grid1);
-    sec1.appendChild(createManualEntry('Other detail…'));
-    div.appendChild(sec1);
+    renderLive();
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+  };
+  secRust.appendChild(manualRust);
+  wrapper.appendChild(secRust);
 
-    const sec2 = document.createElement('div'); sec2.className = 'form-section';
-    sec2.innerHTML = '<h3>Other</h3>';
-    const lbl2 = document.createElement('label');
-    const cb2 = document.createElement('input'); cb2.type='checkbox'; cb2.value='Aerial Earth Spike';
-    lbl2.appendChild(cb2); lbl2.append('Aerial Earth Spike');
-    const grid2 = document.createElement('div'); grid2.className='grid';
-    grid2.appendChild(lbl2);
-    sec2.appendChild(grid2);
-    sec2.appendChild(createManualEntry('Other detail…'));
-    div.appendChild(sec2);
-  }
+  // ─── Other section (Aerial Earth Spike + free-text “Other”) ──────────────
+  const secOther = document.createElement('div');
+  secOther.className = 'form-section';
+  secOther.innerHTML = '<h3>Other</h3>';
+  const gridOther = document.createElement('div');
+  gridOther.className = 'grid';
+
+  // 3) Aerial Earth Spike
+  const lblAES = document.createElement('label');
+  const cbAES  = document.createElement('input');
+  cbAES.type   = 'checkbox';
+  cbAES.checked = liveData.some(r => r.equipment==='Aerial Earth Spike');
+  cbAES.onchange = () => {
+    // remove old AES row
+    liveData = liveData.filter(r => r.equipment!=='Aerial Earth Spike');
+    if (cbAES.checked) {
+      liveData.push({
+        equipment: 'Aerial Earth Spike',
+        action:    'Earth spikes should be installed at the aerial rail pole of the switchyard.',
+        manual:    false,
+        order:     2
+      });
+    }
+    renderLive();
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+  };
+  lblAES.appendChild(cbAES);
+  lblAES.append('Aerial Earth Spike');
+  gridOther.appendChild(lblAES);
+  secOther.appendChild(gridOther);
+
+  // 4) Free-text “Other” entry
+  const manualOther = createManualEntry('Other detail…');
+  manualOther.querySelector('button').onclick = () => {
+    const inp = manualOther.querySelector('input');
+    const v   = inp.value.trim();
+    if (!v) return;
+     // Use the equip variable ('Other') so renderLive() will include it
+
+    liveData.push({
+    equipment: equip,
+      action:    v,
+      manual:    true,
+      order:     3
+    });
+    renderLive();
+    localStorage.setItem('visualFindings', JSON.stringify(liveData));
+    inp.value = '';
+  };
+  secOther.appendChild(manualOther);
+
+  wrapper.appendChild(secOther);
+  c.appendChild(wrapper);
+}
+
 
 
   c.appendChild(div);
@@ -1009,7 +1272,14 @@ function otherDesc(val){
 // Render live table
 function renderLive() {
   const tbody = document.querySelector('#liveTable tbody');
-  const priorities = [...ptrList, ...otherList, 'Other']; // ensure “Other” last
+ const priorities = [
+   ...ptrList,
+   // all “otherList” except the generic ‘Other’
+   ...otherList.filter(e => e!=='Other'),
+   'Rusted Structures',
+   'Aerial Earth Spike',
+   'Other'
+ ]; // ensure “Other” last
   let html = '';
   let sl = 1;
 
@@ -1058,6 +1328,44 @@ if (equip === 'SSTR') {
 
   // Fallback
   tbody.innerHTML = html || '<tr><td colspan="3">No data yet.</td></tr>';
+// ─── make Equipment & Action columns editable ───────────────────────────
+// ─── allow editing on every non-serial cell ───────────────────────────────
+const rows = document.querySelectorAll('#liveTable tbody tr');
+rows.forEach(tr => {
+  const cells = tr.querySelectorAll('td');
+  cells.forEach((td, idx) => {
+    // skip Sl. no. column (idx 0)
+    if (idx > 0) {
+      td.contentEditable = 'true';
+      td.addEventListener('blur', () => {
+        const updated = [];
+        document.querySelectorAll('#liveTable tbody tr').forEach(r => {
+          const tds = r.querySelectorAll('td');
+          if (tds.length === 3) {
+            // first row of a merged group
+            updated.push({
+              equipment: tds[1].textContent.trim(),
+              action:    tds[2].textContent.trim()
+            });
+          } else if (tds.length === 2) {
+            // continuation row — reuse last equipment
+            const lastEquip = updated.length
+              ? updated[updated.length - 1].equipment
+              : '';
+            updated.push({
+              equipment: lastEquip,
+              action:    tds[1].textContent.trim()
+            });
+          }
+        });
+        liveData = updated;
+        localStorage.setItem('visualFindings', JSON.stringify(liveData));
+      });
+    }
+  });
+});
+
+
 }
 
 
@@ -1083,6 +1391,78 @@ function updateSSTRLiveTable() {
   localStorage.setItem('visualFindings', JSON.stringify(liveData));
 }
 
+
+/**
+ * Apply all export‐only inline styles to the given table element,
+ * without touching the on‐screen live table.
+ */
+function styleTableForExport(table) {
+  // 1) collapse borders
+  table.style.borderCollapse = 'collapse';
+
+  // 2) prepare color palette
+  const colors = ['#f2dbdb','#c6d9f1','#fdeada','#ebf1de','#fff2cc'];
+  const equipColorMap = {};
+  let colorIndex = 0;
+  let lastEquip = '';
+
+  // 3) walk rows
+  Array.from(table.rows).forEach((tr, rowIndex) => {
+    const cells = Array.from(tr.cells);
+
+    if (rowIndex === 0) {
+      // — HEADER row: Cambria 14pt, bold, normal case, grey bg, black border
+      cells.forEach(td => {
+        td.style.fontFamily    = 'Cambria';
+        td.style.fontSize      = '14pt';
+        td.style.fontWeight    = 'bold';
+        td.style.textTransform = 'none';
+        td.style.color         = 'black';
+        td.style.backgroundColor = '#bfbfbf';
+        td.style.border        = '1px solid black';
+      });
+    } else {
+      // — Sl. No. cell
+      cells[0].style.fontFamily = 'Cambria';
+      cells[0].style.fontSize   = '11pt';
+      cells[0].style.color      = 'black';
+      cells[0].style.border     = '1px solid black';
+
+      // — Equipment/Material cell (first of a group)
+      let equipment;
+      if (cells.length === 3) {
+        equipment = cells[1].textContent.trim();
+        cells[1].style.fontFamily    = 'Cambria';
+        cells[1].style.fontSize      = '16pt';
+        cells[1].style.fontWeight    = 'bold';
+        cells[1].style.textTransform = 'none';
+        cells[1].style.color         = 'black';
+        cells[1].style.border        = '1px solid black';
+      } else {
+        equipment = lastEquip;
+      }
+
+      // — Action cell
+      const actionCell = cells[cells.length - 1];
+      actionCell.style.fontFamily = 'Cambria';
+      actionCell.style.fontSize   = '11pt';
+      actionCell.style.color      = 'black';
+      actionCell.style.border     = '1px solid black';
+
+      // — Group‐color background
+      if (!equipColorMap[equipment]) {
+        equipColorMap[equipment] = colors[colorIndex++ % colors.length];
+      }
+      tr.style.backgroundColor = equipColorMap[equipment];
+      lastEquip = equipment;
+    }
+  });
+}
+
+
+
+
+
 // Export functions (using libraries loaded on page)
 function exportExcel() {
   // Converts the live table to a workbook and downloads as .xlsx
@@ -1094,10 +1474,38 @@ function exportExcel() {
 }
 
 function exportDoc() {
-  // Wraps the table HTML in a docx Blob and triggers download
-  const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>'
-             + document.getElementById('liveTable').outerHTML
-             + '</body></html>';
+  // 1) clone + style
+  const live  = document.getElementById('liveTable');
+  const clone = live.cloneNode(true);
+  styleTableForExport(clone);
+
+  // 2) build a Word-compatible HTML with a Landscape section
+  const html = `
+<!DOCTYPE html>
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+      xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8"/>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+      <!-- Force A4 landscape -->
+      <w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+</head>
+<body>
+  ${clone.outerHTML}
+</body>
+</html>`;
+
+  // 3) convert & download
   const blob = window.htmlDocx.asBlob(html);
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -1107,17 +1515,87 @@ function exportDoc() {
   document.body.removeChild(link);
 }
 
+
+
+
 function exportPdf() {
-  // Uses html2pdf to print the table to PDF
-  html2pdf()
-    .set({
-      margin: 10,
-      filename: `VisualFindings_${new Date().toISOString().slice(0,10)}.pdf`,
-      jsPDF: { unit: 'pt', format: 'a4', orientation: 'landscape' }
-    })
-    .from(document.getElementById('liveTable'))
-    .save();
+  // 1) Clone & style the table (for doc consistency)
+  const live  = document.getElementById('liveTable');
+  const clone = live.cloneNode(true);
+  styleTableForExport(clone);
+
+  // 2) Build an array mapping each body-row to its equipment group
+  const trs = Array.from(clone.querySelectorAll('tbody tr'));
+  const equipForRow = [];
+  let lastEquip = '';
+  trs.forEach(tr => {
+    const tds = Array.from(tr.cells);
+    if (tds.length === 3) {
+      // first row of a merged group
+      lastEquip = tds[1].textContent.trim();
+    }
+    equipForRow.push(lastEquip);
+  });
+
+  // 3) Assign each unique equipment its color in RGB
+  const hexToRgb = hex => hex.match(/[0-9A-F]{2}/gi)
+    .map(c => parseInt(c,16));
+  const palette = ['#f2dbdb','#c6d9f1','#fdeada','#ebf1de','#fff2cc'];
+  const uniqueEquips = Array.from(new Set(equipForRow));
+  const equipColorMap = {};
+  uniqueEquips.forEach((eq, i) => {
+    equipColorMap[eq] = hexToRgb(palette[i % palette.length]);
+  });
+
+  // 4) Temporarily attach clone off-screen so AutoTable can read its rowspans
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.top = '-9999px';
+  container.appendChild(clone);
+  document.body.appendChild(container);
+
+  // 5) Let AutoTable pull directly from the HTML
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.autoTable({
+    html: clone,
+    startY: 20,
+    margin: { left: 10, right: 10 },
+    styles: {
+      font: 'Cambria',
+      fontSize: 11,
+      textColor: 0,
+      lineColor: 0,
+      lineWidth: 0.5
+    },
+    headStyles: {
+      fillColor: hexToRgb('#bfbfbf'),
+      textColor: 0,
+      fontStyle: 'bold',
+      fontSize: 14,
+      halign: 'center'
+    },
+    didParseCell: data => {
+      if (data.section === 'body') {
+        const eq = equipForRow[data.row.index];
+        data.cell.styles.fillColor = equipColorMap[eq];
+        // Bold + larger for Equipment/Material column
+        if (data.column.index === 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fontSize  = 16;
+        }
+      }
+    }
+  });
+
+  // 6) Cleanup & save
+  document.body.removeChild(container);
+  doc.save(`VisualFindings_${new Date().toISOString().slice(0,10)}.pdf`);
 }
+
+
+
+
 
 // Helpers for manual entries
 function addCustomOil() {
