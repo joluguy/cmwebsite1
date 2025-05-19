@@ -11,7 +11,7 @@ const oilLeakCols = [
   ['Upper side radiator Plug near HV R Phase','Upper side radiator Plug near HV Y Phase','Upper side radiator Plug near HV B Phase','Lower side radiator Plug near HV R Phase','Lower side radiator Plug near HV Y Phase','Lower side radiator Plug near HV B Phase','Upper side radiator Plug near LV R Phase','Upper side radiator Plug near LV Y Phase','Upper side radiator Plug near LV B Phase','Upper side radiator Plug near Neutral','Lower side radiator Plug near LV R Phase','Lower side radiator Plug near LV Y Phase','Lower side radiator Plug near LV B Phase','Lower side radiator Plug near Neutral']
 ];
 const otherCols = [
-  ['Air-Oil Mix','M. Tank Oil Low','OLTC Oil Low','PTR Oil Check','Low Oil on M. Tank Breather Oil Pot','Low Oil on OLTC Breather Oil Pot','M. Tank Breather Oil Pot Empty','OLTC Breather Oil Pot Empty','Broken M. Tank Breather Oil Pot','Broken OLTC Breather Oil Pot','M. Tank Breather Oil Pot Missing','OLTC Breather Oil Pot Missing'],
+  ['Air-Oil Mix','M.Tank Silica Gel','OLTC Silica Gel','M. Tank Oil Low','OLTC Oil Low','PTR Oil Check','Low Oil on M. Tank Breather Oil Pot','Low Oil on OLTC Breather Oil Pot','M. Tank Breather Oil Pot Empty','OLTC Breather Oil Pot Empty','Broken M. Tank Breather Oil Pot','Broken OLTC Breather Oil Pot','M. Tank Breather Oil Pot Missing','OLTC Breather Oil Pot Missing'],
   ['OTI >WTI','OTI=WTI','OTI Def.','WTI Def.','M. Tank Breather S. Gel.','OLTC Breather S. Gel.','MOG Def.','MOG Conn. Open','POG not Visible','MK Box Glass Cover Missing','MK Box Glass Cover Broken'],
   ['MK Box Flat Earthing','OLTC Flat Earthing','Neutral Double Flat Earthing','PTR Body Rusted','PTR Radiator Rusted','PTR Con. Tank Rusted'],
   ['OLTC Count']
@@ -1431,6 +1431,8 @@ function oilDesc(v){ return true; }
 function otherDesc(val){
   const map = {
     'Air-Oil Mix':'It has been observed in POG that air is present in the conservator tank. The bellow of the PTR is not properly filled with air. Appropriate action to be taken to rectify the problem.',
+    'M.Tank Silica Gel':'Silica gel of the PTR Conservator Tank breather must be replaced.',
+    'OLTC Silica Gel':'Silica gel of the OLTC Conservator Tank breather must be replaced.',
     'M. Tank Oil Low':'Low oil level has been found. Action must be taken to maintain desired oil level in the transformer as per oil filling procedure of manufacturer.',
     'OLTC Oil Low':'Low oil level has been found on OLTC. Action must be taken to maintain desired oil level in the transformer as per oil filling procedure of manufacturer.',
     'PTR Oil Check':'Oil Level is to be checked. If found low, necessary action towards oil filling as per oil filling procedure of manufacturer is to be done.',
