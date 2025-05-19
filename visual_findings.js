@@ -261,16 +261,26 @@ grid.innerHTML = `
 `;
 
   osec.appendChild(grid);
-btn.addEventListener('click', () => {
-  // hide all accordion panels…
-  osec.querySelectorAll('.grid').forEach(g => g.style.display = 'none');
-  // …and reset all buttons
-  osec.querySelectorAll('.accordion-btn').forEach(b => b.classList.remove('active'));
+['click','touchstart'].forEach(evt => {
+  btn.addEventListener(evt, e => {
+    e.preventDefault();
+    // hide all panels with !important
+    osec
+      .querySelectorAll('.grid')
+      .forEach(g => g.style.setProperty('display','none','important'));
+    // reset all buttons
+    osec
+      .querySelectorAll('.accordion-btn')
+      .forEach(b => b.classList.remove('active'));
 
-  // activate just this one
-  btn.classList.add('active');
-  // if it’s a CSS-grid container, show as grid; otherwise as block
-  grid.style.display = grid.classList.contains('grid') ? 'grid' : 'block';
+    // show just this one
+    btn.classList.add('active');
+    grid.style.setProperty(
+      'display',
+      grid.classList.contains('grid') ? 'grid' : 'block',
+      'important'
+    );
+  });
 });
 
 
@@ -328,17 +338,28 @@ btn.addEventListener('click', () => {
 `;
 
   osec.appendChild(grid);
-btn.addEventListener('click', () => {
-  // hide all accordion panels…
-  osec.querySelectorAll('.grid').forEach(g => g.style.display = 'none');
-  // …and reset all buttons
-  osec.querySelectorAll('.accordion-btn').forEach(b => b.classList.remove('active'));
+['click','touchstart'].forEach(evt => {
+  btn.addEventListener(evt, e => {
+    e.preventDefault();
+    // hide all panels with !important
+    osec
+      .querySelectorAll('.grid')
+      .forEach(g => g.style.setProperty('display','none','important'));
+    // reset all buttons
+    osec
+      .querySelectorAll('.accordion-btn')
+      .forEach(b => b.classList.remove('active'));
 
-  // activate just this one
-  btn.classList.add('active');
-  // if it’s a CSS-grid container, show as grid; otherwise as block
-  grid.style.display = grid.classList.contains('grid') ? 'grid' : 'block';
+    // show just this one
+    btn.classList.add('active');
+    grid.style.setProperty(
+      'display',
+      grid.classList.contains('grid') ? 'grid' : 'block',
+      'important'
+    );
+  });
 });
+
 
 
 
@@ -348,6 +369,7 @@ btn.addEventListener('click', () => {
 } else {
   const grid = document.createElement('div');
   grid.className = 'grid';
+  grid.classList.add('grid');
   grid.style.display = 'none';
   items.forEach(val=>{
     const lbl = document.createElement('label');
@@ -362,16 +384,26 @@ btn.addEventListener('click', () => {
   });
   osec.appendChild(grid);
 
-btn.addEventListener('click', () => {
-  // hide all accordion panels…
-  osec.querySelectorAll('.grid').forEach(g => g.style.display = 'none');
-  // …and reset all buttons
-  osec.querySelectorAll('.accordion-btn').forEach(b => b.classList.remove('active'));
+['click','touchstart'].forEach(evt => {
+  btn.addEventListener(evt, e => {
+    e.preventDefault();
+    // hide all panels with !important
+    osec
+      .querySelectorAll('.grid')
+      .forEach(g => g.style.setProperty('display','none','important'));
+    // reset all buttons
+    osec
+      .querySelectorAll('.accordion-btn')
+      .forEach(b => b.classList.remove('active'));
 
-  // activate just this one
-  btn.classList.add('active');
-  // if it’s a CSS-grid container, show as grid; otherwise as block
-  grid.style.display = grid.classList.contains('grid') ? 'grid' : 'block';
+    // show just this one
+    btn.classList.add('active');
+    grid.style.setProperty(
+      'display',
+      grid.classList.contains('grid') ? 'grid' : 'block',
+      'important'
+    );
+  });
 });
 
 
