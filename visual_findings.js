@@ -186,24 +186,13 @@ function buildPTRForm(equip) {
       'Top Tank near LV R Ph','Top Tank near LV Y Ph','Top Tank near LV B Ph',
       'Top Tank near Neutral','Top Tank above MK Box','Top Tank above OLTC'
     ],
-    'Radiator Valve O/L': [
-      'Upper side radiator valve near HV R Phase','Upper side radiator valve near HV Y Phase',
-      'Upper side radiator valve near HV B Phase','Lower side radiator valve near HV R Phase',
-      'Lower side radiator valve near HV Y Phase','Lower side radiator valve near HV B Phase',
-      'Upper side radiator valve near LV R Phase','Upper side radiator valve near LV Y Phase',
-      'Upper side radiator valve near LV B Phase','Upper side radiator valve near Neutral',
-      'Lower side radiator valve near LV R Phase','Lower side radiator valve near LV Y Phase',
-      'Lower side radiator valve near LV B Phase','Lower side radiator valve near Neutral'
-    ],
-    'Radiator Plug O/L': [
-      'Upper side radiator Plug near HV R Phase','Upper side radiator Plug near HV Y Phase',
-      'Upper side radiator Plug near HV B Phase','Lower side radiator Plug near HV R Phase',
-      'Lower side radiator Plug near HV Y Phase','Lower side radiator Plug near HV B Phase',
-      'Upper side radiator Plug near LV R Phase','Upper side radiator Plug near LV Y Phase',
-      'Upper side radiator Plug near LV B Phase','Upper side radiator Plug near Neutral',
-      'Lower side radiator Plug near LV R Phase','Lower side radiator Plug near LV Y Phase',
-      'Lower side radiator Plug near LV B Phase','Lower side radiator Plug near Neutral'
-    ],
+
+'Radiator Valve O/L': 'custom_radiator_valve',
+
+
+'Radiator Plug O/L': 'custom_radiator_plug',
+
+
     'Other O/L': [
       'Top Filtration Valve','Bottom Drain Valve','Top Sampling Valve','Conservator Tank Drain Valve',
       'Tap Changer','MOG','POG','Buchholz Relay','OSR','Valve between Buchholz Relay & Conservator Tank'
@@ -215,31 +204,165 @@ function buildPTRForm(equip) {
     const btn = document.createElement('button');
     btn.className = 'accordion-btn';
     btn.textContent = title;
-    btn.onclick = () => {
-      // toggle active
-      osec.querySelectorAll('.accordion-btn').forEach(b=>b.classList.remove('active'));
-      osec.querySelectorAll('.grid').forEach(g=>g.style.display='none');
-      btn.classList.add('active');
-      grid.style.display = 'grid';
-    };
     osec.appendChild(btn);
 
     // grid
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-    grid.style.display = 'none';
-    items.forEach(val=>{
-      const lbl = document.createElement('label');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = val;
-      cb.checked = liveData.some(r => r.equipment === equip && r.tags?.includes(cb.value));
-      cb.onchange = () => savePTR(equip);
-      lbl.appendChild(cb);
-      lbl.append(val);
-      grid.appendChild(lbl);
-    });
-    osec.appendChild(grid);
+if (items === 'custom_radiator_valve') {
+  const grid = document.createElement('div');
+  grid.style.display = 'none';
+grid.innerHTML = `
+  <table style="width:100%; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
+    <tr>
+      <th colspan="2" style="border: 1px solid #00f2ff; background-color: #0f870f;">Upper Side Radiator Valve</th>
+      <th colspan="2" style="border: 1px solid #00f2ff; background-color: #0f870f;">Lower Side Radiator Valve</th>
+    </tr>
+    <tr>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e; color: black;">HV Side</th>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e; color: black;">LV Side</th>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e; color: black;">HV Side</th>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e; color: black;">LV Side</th>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Upper side radiator valve near HV R Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Upper side radiator valve near LV R Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Lower side radiator valve near HV R Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Lower side radiator valve near LV R Phase')}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Upper side radiator valve near HV Y Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Upper side radiator valve near LV Y Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Lower side radiator valve near HV Y Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Lower side radiator valve near LV Y Phase')}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Upper side radiator valve near HV B Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Upper side radiator valve near LV B Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Lower side radiator valve near HV B Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Lower side radiator valve near LV B Phase')}</td>
+    </tr>
+<tr>
+  <td rowspan="2" style="border: 1px solid #00f2ff; background-color: #cce5ff; text-align: center; vertical-align: middle; color: black;">  </td>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda; text-align: center; vertical-align: middle; color: black;">
+    ${checkbox('Upper side radiator valve near Neutral')}
+  </td>
+  <td rowspan="2" style="border: 1px solid #00f2ff; background-color: #cce5ff; text-align: center; vertical-align: middle; color: black;">  </td>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda; text-align: center; vertical-align: middle; color: black;">
+    ${checkbox('Lower side radiator valve near Neutral')}
+  </td>
+</tr>
+<tr>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda;"></td>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda;"></td>
+</tr>
+
+  </table>
+`;
+
+  osec.appendChild(grid);
+btn.onclick = () => {
+  const allGrids = osec.querySelectorAll('div');
+  const allButtons = osec.querySelectorAll('.accordion-btn');
+  allGrids.forEach(g => g.style.display = 'none');
+  allButtons.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  grid.style.display = 'block';
+};
+
+
+
+} else if (items === 'custom_radiator_plug') {
+  const grid = document.createElement('div');
+  grid.style.display = 'none';
+  grid.innerHTML = `
+  <table style="width:100%; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
+    <tr>
+      <th colspan="2" style="border: 1px solid #00f2ff;">Upper Side Radiator Plug</th>
+      <th colspan="2" style="border: 1px solid #00f2ff;">Lower Side Radiator Plug</th>
+    </tr>
+    <tr>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e;">HV Side</th>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e;">LV Side</th>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e;">HV Side</th>
+      <th style="border: 1px solid #00f2ff; background-color: #e5411e;">LV Side</th>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Upper side radiator Plug near HV R Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Upper side radiator Plug near LV R Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Lower side radiator Plug near HV R Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Lower side radiator Plug near LV R Phase')}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Upper side radiator Plug near HV Y Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Upper side radiator Plug near LV Y Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Lower side radiator Plug near HV Y Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Lower side radiator Plug near LV Y Phase')}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Upper side radiator Plug near HV B Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Upper side radiator Plug near LV B Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #cce5ff; color: black;">${checkbox('Lower side radiator Plug near HV B Phase')}</td>
+      <td style="border: 1px solid #00f2ff; text-align: center; vertical-align: middle; background-color: #d4edda; color: black;">${checkbox('Lower side radiator Plug near LV B Phase')}</td>
+    </tr>
+<tr>
+  <td rowspan="2" style="border: 1px solid #00f2ff; background-color: #cce5ff; text-align: center; vertical-align: middle; color: black;">  </td>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda; text-align: center; vertical-align: middle; color: black;">
+    ${checkbox('Upper side radiator valve near Neutral')}
+  </td>
+  <td rowspan="2" style="border: 1px solid #00f2ff; background-color: #cce5ff; text-align: center; vertical-align: middle; color: black;">  </td>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda; text-align: center; vertical-align: middle; color: black;">
+    ${checkbox('Lower side radiator valve near Neutral')}
+  </td>
+</tr>
+<tr>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda;"></td>
+  <td style="border: 1px solid #00f2ff; background-color: #d4edda;"></td>
+</tr>
+  </table>
+`;
+
+  osec.appendChild(grid);
+btn.onclick = () => {
+  const allGrids = osec.querySelectorAll('div');
+  const allButtons = osec.querySelectorAll('.accordion-btn');
+  allGrids.forEach(g => g.style.display = 'none');
+  allButtons.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  grid.style.display = 'block';
+};
+
+
+
+
+
+} else {
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  grid.style.display = 'none';
+  items.forEach(val=>{
+    const lbl = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = val;
+    cb.checked = liveData.some(r => r.equipment === equip && r.tags?.includes(cb.value));
+    cb.onchange = () => savePTR(equip);
+    lbl.appendChild(cb);
+    lbl.append(val);
+    grid.appendChild(lbl);
+  });
+  osec.appendChild(grid);
+
+btn.onclick = () => {
+  const allGrids = osec.querySelectorAll('div');
+  const allButtons = osec.querySelectorAll('.accordion-btn');
+  allGrids.forEach(g => g.style.display = 'none');
+  allButtons.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  grid.style.display = 'grid';
+};
+
+
+}
+
   });
 
   // activate first group by default
@@ -308,6 +431,16 @@ if(val === 'OLTC Count') {
   c.appendChild(div);
   savePTR(equip);
 }
+
+
+function checkbox(val) {
+  const checked = liveData.some(r => r.equipment === currentEquipment && r.tags?.includes(val)) ? 'checked' : '';
+  return `<label><input type="checkbox" value="${val}" ${checked} onchange="savePTR(currentEquipment)"> ${val.replace(/^.*near /, '')}</label>`;
+}
+
+
+
+
 
 
 
@@ -1215,12 +1348,24 @@ liveData = liveData.filter(r => !(r.equipment === equip && !r.manual));
   ).map(cb => cb.value);
 
 
-  if(oil.length){
-    const txt = oil.length>1?
-      `Oil leakages were found from ${oil.join(' & ')} --- These oil leakages must be arrested.`:
-      `Oil leakage was found from ${oil[0]} --- This oil leakage must be arrested.`;
-    liveData.push({equipment:equip,action:txt, tags: oil});
+if (oil.length) {
+  // build a comma-separated list with " & " before the last item
+  let listText;
+  if (oil.length > 1) {
+    const allButLast = oil.slice(0, -1).join(', ');
+    const lastItem   = oil[oil.length - 1];
+    listText = `${allButLast} & ${lastItem}`;
+  } else {
+    listText = oil[0];
   }
+
+  const txt = oil.length > 1
+    ? `Oil leakages were found from ${listText} --- These oil leakages must be arrested.`
+    : `Oil leakage was found from ${listText} --- This oil leakage must be arrested.`;
+
+  liveData.push({ equipment: equip, action: txt, tags: oil });
+}
+
   // Other
   document.querySelectorAll('#ptrFormContainer .form-section:nth-child(2) input').forEach(inp=>{
     if(inp.type==='checkbox'&&inp.checked){
