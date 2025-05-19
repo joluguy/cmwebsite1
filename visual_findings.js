@@ -213,7 +213,8 @@ if (items === 'custom_radiator_valve') {
   grid.style.display = 'none';
 
 grid.innerHTML = `
-  <table style="width:100%; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
+  <table style="width:100%; grid-column: 1 / -1; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
+
     <tr>
       <th colspan="2" style="border: 1px solid #00f2ff; background-color: #0f870f;">Upper Side Radiator Valve</th>
       <th colspan="2" style="border: 1px solid #00f2ff; background-color: #0f870f;">Lower Side Radiator Valve</th>
@@ -291,7 +292,8 @@ grid.innerHTML = `
   grid.classList.add('grid');
   grid.style.display = 'none';
   grid.innerHTML = `
-  <table style="width:100%; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
+  <table style="width:100%; grid-column: 1 / -1; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
+
     <tr>
       <th colspan="2" style="border: 1px solid #00f2ff;">Upper Side Radiator Plug</th>
       <th colspan="2" style="border: 1px solid #00f2ff;">Lower Side Radiator Plug</th>
@@ -1813,5 +1815,4 @@ function addCustomOther() {
   localStorage.setItem('visualFindings', JSON.stringify(liveData));
   document.getElementById('customOtherInput').value = '';
 }
-
 
