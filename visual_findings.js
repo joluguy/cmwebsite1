@@ -209,7 +209,9 @@ function buildPTRForm(equip) {
     // grid
 if (items === 'custom_radiator_valve') {
   const grid = document.createElement('div');
+  grid.classList.add('grid');
   grid.style.display = 'none';
+
 grid.innerHTML = `
   <table style="width:100%; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
     <tr>
@@ -259,19 +261,24 @@ grid.innerHTML = `
 `;
 
   osec.appendChild(grid);
-btn.onclick = () => {
-  const allGrids = osec.querySelectorAll('div');
-  const allButtons = osec.querySelectorAll('.accordion-btn');
-  allGrids.forEach(g => g.style.display = 'none');
-  allButtons.forEach(b => b.classList.remove('active'));
+btn.addEventListener('click', () => {
+  // hide all accordion panels…
+  osec.querySelectorAll('.grid').forEach(g => g.style.display = 'none');
+  // …and reset all buttons
+  osec.querySelectorAll('.accordion-btn').forEach(b => b.classList.remove('active'));
+
+  // activate just this one
   btn.classList.add('active');
-  grid.style.display = 'block';
-};
+  // if it’s a CSS-grid container, show as grid; otherwise as block
+  grid.style.display = grid.classList.contains('grid') ? 'grid' : 'block';
+});
+
 
 
 
 } else if (items === 'custom_radiator_plug') {
   const grid = document.createElement('div');
+  grid.classList.add('grid');
   grid.style.display = 'none';
   grid.innerHTML = `
   <table style="width:100%; border-collapse: collapse; font-size:12px; border: 1px solid #00f2ff;">
@@ -321,14 +328,18 @@ btn.onclick = () => {
 `;
 
   osec.appendChild(grid);
-btn.onclick = () => {
-  const allGrids = osec.querySelectorAll('div');
-  const allButtons = osec.querySelectorAll('.accordion-btn');
-  allGrids.forEach(g => g.style.display = 'none');
-  allButtons.forEach(b => b.classList.remove('active'));
+btn.addEventListener('click', () => {
+  // hide all accordion panels…
+  osec.querySelectorAll('.grid').forEach(g => g.style.display = 'none');
+  // …and reset all buttons
+  osec.querySelectorAll('.accordion-btn').forEach(b => b.classList.remove('active'));
+
+  // activate just this one
   btn.classList.add('active');
-  grid.style.display = 'block';
-};
+  // if it’s a CSS-grid container, show as grid; otherwise as block
+  grid.style.display = grid.classList.contains('grid') ? 'grid' : 'block';
+});
+
 
 
 
@@ -351,14 +362,18 @@ btn.onclick = () => {
   });
   osec.appendChild(grid);
 
-btn.onclick = () => {
-  const allGrids = osec.querySelectorAll('div');
-  const allButtons = osec.querySelectorAll('.accordion-btn');
-  allGrids.forEach(g => g.style.display = 'none');
-  allButtons.forEach(b => b.classList.remove('active'));
+btn.addEventListener('click', () => {
+  // hide all accordion panels…
+  osec.querySelectorAll('.grid').forEach(g => g.style.display = 'none');
+  // …and reset all buttons
+  osec.querySelectorAll('.accordion-btn').forEach(b => b.classList.remove('active'));
+
+  // activate just this one
   btn.classList.add('active');
-  grid.style.display = 'grid';
-};
+  // if it’s a CSS-grid container, show as grid; otherwise as block
+  grid.style.display = grid.classList.contains('grid') ? 'grid' : 'block';
+});
+
 
 
 }
