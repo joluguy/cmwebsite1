@@ -182,7 +182,7 @@ function buildPTRForm(equip) {
       'R Phase LV Bushing Turret','Y Phase LV Bushing Turret','B Phase LV Bushing Turret','Neutral Bushing Turret'
     ],
     'Top Tank O/L': [
-      'Top Tank near HV R Ph','Top Tank near HV Y Ph','Top Tank near HV B Ph',
+      'Top Tank','Top Tank near HV R Ph','Top Tank near HV Y Ph','Top Tank near HV B Ph',
       'Top Tank near LV R Ph','Top Tank near LV Y Ph','Top Tank near LV B Ph',
       'Top Tank near Neutral','Top Tank above MK Box','Top Tank above OLTC'
     ],
