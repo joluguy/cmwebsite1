@@ -9,7 +9,7 @@ const locationOptions = [
   'Bus PT','PT-1','PT-2','PT-3','Station Service Transformer','Other'
 ];
 const sideOptions = [
-  'PTR Side','Bus Side','CT Side','VCB Side','LA Side','Line Side',
+  'Both Sides','PTR Side','Bus Side','CT Side','VCB Side','LA Side','Line Side',
   'Incoming Side','Cable Side','Station Transformer Side','Other'
 ];
 const classifications = [
