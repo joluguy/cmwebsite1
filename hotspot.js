@@ -236,22 +236,43 @@ function renderLive() {
     const rrow = lt.insertRow();
     rrow.insertCell().textContent = i+1;
     // Location text
-    const locEls = tr.cells[1].querySelectorAll('select,input');
-    let text = Array.from(locEls).map(e=>e.value).filter(v=>v).join(' ');
-    const sides = ['R','Y','B','Neutral']
-      .map((ph,idx)=>tr.cells[3+idx].querySelector('select')?.value||'')
-      .filter(v=>v)
-      .map((v,idx)=>`${['R','Y','B','Neutral'][idx]} Phase- ${v}`);
-    if (sides.length) text += ` (${sides.join(', ')})`;
-    rrow.insertCell().textContent = text||'---';
+const locEls = tr.cells[1].querySelectorAll('select,input');
+let text = Array.from(locEls).map(e => e.value).filter(v => v).join(' ');
+
+// Corrected logic for dropdown fetch for all rows
+let sideText = '';
+['R', 'Y', 'B', 'Neutral'].forEach((ph, idx) => {
+  let phaseCell;
+  if (i === 0) {
+    phaseCell = tr.cells[3 + idx];
+  } else {
+    phaseCell = tr.cells[3 + idx - 1];
+  }
+  const sideVal = phaseCell.querySelector('select')?.value || '';
+  if (sideVal) {
+    sideText += `${ph} Phase: ${sideVal}, `;
+  }
+});
+if (sideText) {
+  sideText = sideText.slice(0, -2);
+  text += ` (${sideText})`;
+}
+
+rrow.insertCell().textContent = text || '---';
+
     // Ambient
     if (i === 0) {const c = rrow.insertCell(); const ambEl = document.getElementById('ambientInput'); c.textContent = (ambEl ? ambEl.value : '') || '---'; c.rowSpan = n;}
 
     // R/Y/B/N
-    ['r','y','b','n'].forEach((c,idx)=>{
-      const v = tr.cells[3+idx].querySelector('input').value;
-      rrow.insertCell().textContent = v||'---';
-    });
+const offset = (i === 0) ? 3 : 2;
+['r','y','b','n'].forEach((c, idx) => {
+  const cell = tr.cells[offset + idx];
+  const v = cell.querySelector('input').value || '---';
+  rrow.insertCell().textContent = v;
+});
+
+
+
     // Image Code
     rrow.insertCell().textContent = tr.cells[7].querySelector('input').value || '---';
     // Remarks
