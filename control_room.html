@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Control Room Inspection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 30px 10px;
+      font-family: 'Orbitron', sans-serif;
+      background-color: #0a0f2c;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .header {
+      width: 100%;
+      text-align: right;
+      padding: 10px 20px;
+      font-size: 16px;
+      color: #00f2ff;
+      background-color: #111836;
+      box-shadow: 0 0 10px #00f2ff;
+      margin-bottom: 40px;
+    }
+    h1 {
+      color: #00f2ff;
+      text-shadow: 0 0 10px #00f2ff;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    .button-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-bottom: 20px;
+      width: 90vw;
+      max-width: 600px;
+    }
+    .button-container button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background-color: #111836;
+      color: #00f2ff;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00f2ff;
+      transition: all 0.3s ease;
+    }
+    .button-container button:hover {
+      background-color: #00f2ff;
+      color: #000;
+      transform: scale(1.05);
+    }
+    .section {
+      display: none;
+      width: 90vw;
+      max-width: 800px;
+      background-color: #111836;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      margin-bottom: 30px;
+    }
+    .section.active {
+      display: block;
+    }
+@media (max-width:600px) {
+  /* Make main buttons stack full-width */
+  .button-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .button-container button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+  }
+  /* Scale down the title */
+  h1 {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  /* Sections full-width and snug padding */
+  .section {
+    width: 100vw;
+    max-width: none;
+    padding: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Stack sub-tabs vertically */
+  .sub-tab-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sub-tab-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* Action buttons at bottom of each table */
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px !important;
+  }
+  .action-buttons button {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* Make every table scrollable horizontally */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-container table {
+    width: 100%;
+    min-width: 600px;    /* allow scrolling if needed */
+    table-layout: fixed;
+  }
+  .table-container th,
+  .table-container td {
+    padding: 6px 8px;
+    font-size: 12px;
+    word-wrap: break-word;
+  }
+
+  /* Inputs, selects, buttons tappable size */
+  input, select, .section-btn {
+    font-size: 14px !important;
+    padding: 8px 6px !important;
+  }
+}
+
+
+/* Sub-tabs under “Panel Name & Load” */
+.sub-tab-container {
+  display: flex;
+  justify-content: center;  /* center the buttons */
+  align-items: center;
+  gap: 1rem;
+  width: 100%;               /* make container full-width */
+  margin: 0 auto 1rem auto;  /* vertical margin, auto-center horizontally */
+}
+.sub-tab-btn {
+  /* you can copy your .section-btn styles here or simply inherit */
+  padding: 8px 16px;
+  font-family: 'Orbitron', sans-serif;
+  background: #111836;
+  color: #00f2ff;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #00f2ff;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.sub-tab-btn:hover {
+  background: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+.sub-section { display: none; }
+.sub-section.active { display: block; }
+
+.sub-tab-btn.active {
+  background-color: #00f2ff;
+  color: #000;
+  box-shadow: 0 0 20px #00f2ff;
+}
+
+/* Highlight the active main tab */
+.section-btn.active {
+  background-color: #00f2ff;
+  color: #000;
+  box-shadow: 0 0 20px #00f2ff;
+}
+
+/* ========== Add to your <style> block or styles.css ========== */
+
+/* Table and cell styling */
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.table-container th,
+.table-container td {
+  border: 1px solid #00f2ff;
+  padding: 0.5rem;
+  text-align: center;
+  color: #fff;
+}
+.table-container th {
+  background-color: #111836;
+}
+
+/* ========== Battery inputs: center the entered values ========== */
+#battery .table-container input {
+  text-align: center;
+}
+
+/* ========== Temp inputs: center the entered values ========== */
+#temp .table-container input {
+  text-align: center;
+}
+
+
+
+/* Inputs & selects in Panel tables */
+#panelLoad .sub-section input[type="text"],
+#panelLoad .sub-section input[type="number"],
+#panelLoad .sub-section select {
+  width: 100%;
+  background: #0a0f2c;
+  color: #fff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+#panelLoad .sub-section input:focus,
+#panelLoad .sub-section select:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+/* Smaller action buttons in tables */
+#panelLoad .sub-section .section-btn {
+  background-color: #111836;
+  color: #00f2ff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  box-shadow: 0 0 10px #00f2ff;
+  transition: all 0.3s ease;
+}
+#panelLoad .sub-section .section-btn:hover {
+  background-color: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+/* Match Temp → Save buttons to Panel Name & Load style */
+#temp .sub-section .section-btn {
+  background-color: #111836;
+  color: #00f2ff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  box-shadow: 0 0 10px #00f2ff;
+  transition: all 0.3s ease;
+}
+#temp .sub-section .section-btn:hover {
+  background-color: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+
+
+
+/* Delete button accent */
+/* glowing red “Delete” button */
+#panelLoad .sub-section .delete-row-btn {
+  background-color: #8B0000;      /* dark red background */
+  color: #fff;                    /* white text */
+  border: none;                   /* override any existing border */
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  /* glow effect */
+  box-shadow:
+    0 0 5px  #ff0000 !important,
+    0 0 15px #ff0000 !important;
+  transition:
+    box-shadow 0.3s ease,
+    transform  0.2s ease;
+}
+
+#panelLoad .sub-section .delete-row-btn:hover {
+  /* intensify glow & pop on hover */
+  box-shadow:
+    0 0 10px #ff0000 !important,
+    0 0 25px #ff0000 !important;
+  transform: scale(1.05);
+}
+
+
+/* =========== Fix table overflow =========== */
+.table-container table {
+  table-layout: fixed;
+}
+.table-container th,
+.table-container td {
+  word-wrap: break-word;
+}
+
+/* Set column widths (adjust % to taste) */
+.table-container th:nth-child(1),
+.table-container td:nth-child(1) { width: 8%;  }  /* SL No */
+.table-container th:nth-child(2),
+.table-container td:nth-child(2) { width: 42%; }  /* Panel Name */
+.table-container th:nth-child(3),
+.table-container td:nth-child(3) { width: 20%; }  /* VCB State */
+.table-container th:nth-child(4),
+.table-container td:nth-child(4) { width: 20%; }  /* Load */
+.table-container th:nth-child(5),
+.table-container td:nth-child(5) { width: 10%; }  /* Action */
+
+/* Make inputs & selects fill their cell but not overflow */
+.table-container input,
+.table-container select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ==== TEMP→11KV: equalize F1/B1/B2 & adjust Panel/VCB widths ==== */
+#tableTemp11 { 
+  table-layout: fixed;  /* enforce % widths */
+}
+#tableTemp11 th {
+  white-space: normal !important;  /* allow headers to wrap */
+  word-wrap: break-word;
+}
+
+/* Sl. No.         6% */
+#tableTemp11 th:nth-child(1),
+#tableTemp11 td:nth-child(1) { width: 6%; }
+/* Panel Name    24% */
+#tableTemp11 th:nth-child(2),
+#tableTemp11 td:nth-child(2) { width: 24%; }
+/* VCB State     12% */
+#tableTemp11 th:nth-child(3),
+#tableTemp11 td:nth-child(3) { width: 12%; }
+/* Load (A)      12% */
+#tableTemp11 th:nth-child(4),
+#tableTemp11 td:nth-child(4) { width: 12%; }
+/* F1, B1, B2   15.33% each */
+#tableTemp11 th:nth-child(5),
+#tableTemp11 td:nth-child(5),
+#tableTemp11 th:nth-child(6),
+#tableTemp11 td:nth-child(6),
+#tableTemp11 th:nth-child(7),
+#tableTemp11 td:nth-child(7) { width: 15.3333%; }
+
+/* ==== TEMP→11KV: match input style to Panel Name & Load ==== */
+#temp11 input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0a0f2c;
+  color: #fff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+#temp11 input[type="number"]:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+/* ==== TEMP→33KV: equalize F1/B1/B2 & adjust Panel/VCB widths ==== */
+#tableTemp33 { 
+  table-layout: fixed;  /* enforce % widths */
+}
+#tableTemp33 th {
+  white-space: normal !important;  /* allow wrapping */
+  word-wrap: break-word;
+}
+
+/* Sl. No.         6% */
+#tableTemp33 th:nth-child(1),
+#tableTemp33 td:nth-child(1) { width: 6%; }
+/* Panel Name    24% */
+#tableTemp33 th:nth-child(2),
+#tableTemp33 td:nth-child(2) { width: 24%; }
+/* VCB State     12% */
+#tableTemp33 th:nth-child(3),
+#tableTemp33 td:nth-child(3) { width: 12%; }
+/* Load (A)      12% */
+#tableTemp33 th:nth-child(4),
+#tableTemp33 td:nth-child(4) { width: 12%; }
+/* F1, B1, B2   15.33% each */
+#tableTemp33 th:nth-child(5),
+#tableTemp33 td:nth-child(5),
+#tableTemp33 th:nth-child(6),
+#tableTemp33 td:nth-child(6),
+#tableTemp33 th:nth-child(7),
+#tableTemp33 td:nth-child(7) { width: 15.3333%; }
+
+/* ==== TEMP→33KV: match input style to Panel Name & Load ==== */
+#temp33 input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0a0f2c;
+  color: #fff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+#temp33 input[type="number"]:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+
+/* ==== ULTRASOUND → match input & select style to Temp & Panel-Load ==== */
+#us11 input[type="number"],
+#us11 select,
+#us33 input[type="number"],
+#us33 select {
+  background: #0a0f2c;
+  color: #fff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+#us11 input[type="number"]:focus,
+#us11 select:focus,
+#us33 input[type="number"]:focus,
+#us33 select:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+
+
+
+
+/* ==== ULTRASOUND: fix table overflow and set column widths ==== */
+/* make the container scroll horizontally if it still can’t squeeze down */
+#ultrasound .table-container {
+  overflow-x: auto;
+}
+
+/* force the Ultrasound tables to fill their parent and wrap cells */
+#tableUltrasound11,
+#tableUltrasound33 {
+  width: 100%;
+  table-layout: fixed;    /* enforce the % widths below */
+}
+
+/* wrap long header text */
+#tableUltrasound11 th,
+#tableUltrasound33 th {
+  white-space: normal !important;
+  word-wrap: break-word;
+}
+
+/* Sl. No.       5% */
+#tableUltrasound11 th:nth-child(1),
+#tableUltrasound11 td:nth-child(1),
+#tableUltrasound33 th:nth-child(1),
+#tableUltrasound33 td:nth-child(1) {
+  width: 5%;
+}
+
+/* Panel Name   15% */
+#tableUltrasound11 th:nth-child(2),
+#tableUltrasound11 td:nth-child(2),
+#tableUltrasound33 th:nth-child(2),
+#tableUltrasound33 td:nth-child(2) {
+  width: 15%;
+}
+
+/* VCB State    8% */
+#tableUltrasound11 th:nth-child(3),
+#tableUltrasound11 td:nth-child(3),
+#tableUltrasound33 th:nth-child(3),
+#tableUltrasound33 td:nth-child(3) {
+  width: 8%;
+}
+
+/* Load (in A)  8% */
+#tableUltrasound11 th:nth-child(4),
+#tableUltrasound11 td:nth-child(4),
+#tableUltrasound33 th:nth-child(4),
+#tableUltrasound33 td:nth-child(4) {
+  width: 8%;
+}
+
+/* The six dB inputs (F1, B1, B2, PT, S1, S2) → 10.5% each */
+#tableUltrasound11 th:nth-child(n+5),
+#tableUltrasound11 td:nth-child(n+5),
+#tableUltrasound33 th:nth-child(n+5),
+#tableUltrasound33 td:nth-child(n+5) {
+  width: 10.5%;
+}
+
+/* ensure your inputs & selects never overflow their cells */
+#tableUltrasound11 input,
+#tableUltrasound11 select,
+#tableUltrasound33 input,
+#tableUltrasound33 select {
+  width: 100%;
+  box-sizing: border-box; 
+}
+
+
+
+/* ==== TEV: match Temp/Ultrasound styling & fix overflow ==== */
+/* allow horizontal scroll if it still can’t squeeze down */
+#tev .table-container {
+  overflow-x: auto;
+}
+
+/* enforce full width & fixed layout */
+#tableTEV11,
+#tableTEV33 {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* wrap long header text */
+#tableTEV11 th,
+#tableTEV33 th {
+  white-space: normal !important;
+  word-wrap: break-word;
+}
+
+/* column widths (tweak % as you like) */
+/* Sl. No. */ 
+#tableTEV11 th:nth-child(1),
+#tableTEV11 td:nth-child(1),
+#tableTEV33 th:nth-child(1),
+#tableTEV33 td:nth-child(1) { width: 5%; }
+
+/* Panel Name */ 
+#tableTEV11 th:nth-child(2),
+#tableTEV11 td:nth-child(2),
+#tableTEV33 th:nth-child(2),
+#tableTEV33 td:nth-child(2) { width: 15%; }
+
+/* VCB State */ 
+#tableTEV11 th:nth-child(3),
+#tableTEV11 td:nth-child(3),
+#tableTEV33 th:nth-child(3),
+#tableTEV33 td:nth-child(3) { width: 8%; }
+
+/* Load (in A) */
+#tableTEV11 th:nth-child(4),
+#tableTEV11 td:nth-child(4),
+#tableTEV33 th:nth-child(4),
+#tableTEV33 td:nth-child(4) { width: 8%; }
+
+/* The six “(in dB)” columns share the remaining space (~10.667% each) */
+#tableTEV11 th:nth-child(n+5),
+#tableTEV11 td:nth-child(n+5),
+#tableTEV33 th:nth-child(n+5),
+#tableTEV33 td:nth-child(n+5) {
+  width: 10.6667%;
+}
+
+/* match your inset glow + border + font styling from Temp/Ultrasound */
+#tev11 input[type="number"],
+#tev33 input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0a0f2c;
+  color: #fff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+#tev11 input[type="number"]:focus,
+#tev33 input[type="number"]:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+
+
+
+
+
+/* ===== BATTERY: split the two voltage columns evenly ===== */
+#battery .table-container table {
+  width: 100%;
+  table-layout: fixed;   /* enforce the widths below */
+}
+#battery .table-container th:nth-child(1),
+#battery .table-container td:nth-child(1),
+#battery .table-container th:nth-child(2),
+#battery .table-container td:nth-child(2) {
+  width: 50%;
+}
+
+/* ===== BATTERY: match Temp/Ultrasound input + select theme ===== */
+#battery .sub-section input[type="number"],
+#battery .sub-section input[type="text"],
+#battery .sub-section select {
+  background: #0a0f2c;
+  color: #fff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+#battery .sub-section input:focus,
+#battery .sub-section select:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+/* ===== BATTERY: style action buttons like Temp & Panel-Load ===== */
+#battery .sub-section .section-btn {
+  background-color: #111836;
+  color: #00f2ff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  box-shadow: 0 0 10px #00f2ff;
+  transition: all 0.3s ease;
+}
+#battery .sub-section .section-btn:hover {
+  background-color: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+/* —— Super-compact “Others” Observations rows —— */
+/* shrink cell padding & force top alignment */
+#tableOther11 td:nth-child(3),
+#tableOther33 td:nth-child(3) {
+  padding: 0.2rem !important;
+  line-height: 1.1 !important;
+  vertical-align: top !important;
+}
+
+/* collapse each checkbox+label into a dense inline item */
+#tableOther11 td label,
+#tableOther33 td label {
+  display: inline-block !important;
+  margin: 0.1rem 0.4rem 0.1rem 0 !important;
+  font-size: 0.65rem !important;
+  line-height: 1.1 !important;
+  vertical-align: middle !important;
+}
+
+/* pack the “Other” text-field + button onto one tight line */
+#tableOther11 td > div,
+#tableOther33 td > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  margin-top: 0.25rem !important;
+}
+
+/* shrink the input + button themselves */
+#tableOther11 input[type="text"],
+#tableOther33 input[type="text"],
+#tableOther11 td > div button,
+#tableOther33 td > div button {
+  font-size: 0.65rem !important;
+  padding: 0.2rem !important;
+  height: 1.3em !important;
+}
+
+
+
+
+
+/* Tighter manual-entry row */
+#tableOther11 td > div,
+#tableOther33 td > div {
+  margin-top: 0.25rem;
+}
+#tableOther11 input[type="text"],
+#tableOther33 input[type="text"] {
+  padding: 0.25rem;
+  font-size: 0.7rem;
+}
+
+/* ─────────── Live Table Styles ─────────── */
+#liveTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: 2rem;
+}
+#liveTable th,
+#liveTable td {
+  border: 1px solid #00f2ff;
+  padding: 0.5rem;
+  text-align: center;
+  color: #fff;
+  vertical-align: middle;
+}
+/* ─────── Compact Live-Table Styles ─────── */
+#liveTableContainer {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+
+/* allow the table to grow wider than its container */
+#liveTable {
+  border-collapse: collapse;
+  table-layout: auto;      /* let columns size themselves */
+  width: auto;              /* don’t force it to 100% */
+  min-width: 1200px;        /* ensure at least N pixels for 20 cols */
+  font-size: 0.75rem;
+}
+
+
+#liveTable th,
+#liveTable td {
+  padding: 0.25rem;         /* tighter cells */
+  border: 1px solid #00f2ff;
+  text-align: center;
+  vertical-align: middle;
+  word-wrap: break-word;    /* wrap long headers */
+}
+
+#liveTable th {
+  background-color: #111836;
+  white-space: normal;      /* allow multi-line headings */
+}
+
+/* shrink the heading above the table: */
+#liveTable + h2,
+h2.compact-live-heading {
+  font-size: 1rem !important;
+  margin: 1rem 0;
+}
+
+
+/* ─────── Narrower “Panel Details” Columns ─────── */
+#liveTable th:nth-child(1),
+#liveTable td:nth-child(1) {
+  width: 30px;
+  max-width: 30px;
+}
+
+
+#liveTable th:nth-child(2),
+#liveTable td:nth-child(2) {
+  width: 150px;
+  max-width: 150px;
+}
+
+#liveTable th:nth-child(3),
+#liveTable td:nth-child(3) {
+  width: 100px;
+  max-width: 100px;
+}
+
+#liveTable th:nth-child(4),
+#liveTable td:nth-child(4) {
+  width:  50px;
+  max-width:  50px;
+}
+
+#liveTable th:nth-child(5),
+#liveTable td:nth-child(5) {
+  width:  30px;
+  max-width:  30px;
+}
+
+#liveTable th:nth-child(20),
+#liveTable td:nth-child(20) {
+  width: 600px;
+  max-width: 600px;
+}
+
+/* Narrow only Tb1, Tb2, TPT, TS1 & TS2 sub-columns to 30px */
+#liveTable thead tr:nth-child(2) th:nth-child(2),
+#liveTable tbody td:nth-child(6),
+#liveTable thead tr:nth-child(2) th:nth-child(3),
+#liveTable tbody td:nth-child(7),
+#liveTable thead tr:nth-child(2) th:nth-child(4),
+#liveTable tbody td:nth-child(8),
+#liveTable thead tr:nth-child(2) th:nth-child(5),
+#liveTable tbody td:nth-child(9),
+#liveTable thead tr:nth-child(2) th:nth-child(6),
+#liveTable tbody td:nth-child(10) {
+  width: 30px;
+  max-width: 30px;
+}
+
+/* Narrow only F1, B1 & B2 sub-columns to 30px */
+#liveTable thead tr:nth-child(2) th:nth-child(7),
+#liveTable tbody td:nth-child(11),
+#liveTable thead tr:nth-child(2) th:nth-child(8),
+#liveTable tbody td:nth-child(12),
+#liveTable thead tr:nth-child(2) th:nth-child(9),
+#liveTable tbody td:nth-child(13) {
+  width: 30px;
+  max-width: 30px;
+}
+
+  </style>
+
+
+<style>
+  /* 1a) Location wider, other four equal */
+  #tableTEV11Extra th:first-child,
+  #tableTEV33Extra th:first-child {
+    width: 160px;
+  }
+  #tableTEV11Extra th:nth-child(2),
+  #tableTEV11Extra th:nth-child(3),
+  #tableTEV11Extra th:nth-child(4),
+  #tableTEV11Extra th:nth-child(5),
+  #tableTEV33Extra th:nth-child(2),
+  #tableTEV33Extra th:nth-child(3),
+  #tableTEV33Extra th:nth-child(4),
+  #tableTEV33Extra th:nth-child(5) {
+    width: 120px;
+  }
+
+  /* 1c) center‐align number inputs */
+  #tableTEV11Extra td input[type="number"],
+  #tableTEV33Extra td input[type="number"] {
+    text-align: center;
+  }
+
+  /* 1d) remove spinner arrows */
+  #tableTEV11Extra td input[type="number"]::-webkit-inner-spin-button,
+  #tableTEV11Extra td input[type="number"]::-webkit-outer-spin-button,
+  #tableTEV33Extra td input[type="number"]::-webkit-inner-spin-button,
+  #tableTEV33Extra td input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  #tableTEV11Extra td input[type="number"],
+  #tableTEV33Extra td input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+/* ── 1c) EXTRA TEV TABLE BORDER COLOR & COLLAPSE ── */
+#tableTEV11Extra,
+#tableTEV11Extra th,
+#tableTEV11Extra td,
+#tableTEV33Extra,
+#tableTEV33Extra th,
+#tableTEV33Extra td {
+  border: 2px solid #4A90E2;      /* contrasting/stylish blue */
+}
+#tableTEV11Extra,
+#tableTEV33Extra {
+  border-collapse: collapse;
+}
+
+
+</style>
+
+
+
+</head>
+<body>
+  <div class="header" id="substationHeader"></div>
+  <h1>Control Room Inspection Entry</h1>
+
+  <div class="button-container">
+    <button class="section-btn" data-target="panelLoad">Panel Name &amp; Load</button>
+    <button class="section-btn" data-target="tev">TEV</button>
+    <button class="section-btn" data-target="temp">Temp</button>
+    <button class="section-btn" data-target="ultrasound">Ultrasound</button>
+    <button class="section-btn" data-target="battery">Battery &amp; Battery Charger</button>
+    <button class="section-btn" data-target="other">Other</button>
+  </div>
+
+  <div id="panelLoad" class="section">
+   <div class="sub-tab-container">
+     <button class="sub-tab-btn" data-sub="pan11">11KV Panels</button>
+     <button class="sub-tab-btn" data-sub="pan33">33KV Panels</button>
+   </div>
+   <div id="pan11" class="sub-section">
+
+     <div class="table-container">
+       <table id="table11">
+         <thead>
+           <tr>
+             <th>Sl. No.</th>
+             <th>11KV Panel Name</th>
+             <th>VCB State</th>
+             <th>Load (in A)</th>
+             <th>Action</th>
+           </tr>
+         </thead>
+         <tbody>
+           <tr>
+             <td>1</td>
+             <td><input type="text" placeholder="11KV Panel Name" /></td>
+             <td>
+               <select>
+                 <option value="" disabled selected hidden></option>
+                 <option>ON</option>
+                 <option>OFF</option>
+                 <option>VCB Missing</option>
+                 <option>Shutdown</option>
+               </select>
+             </td>
+             <td><input type="number" placeholder="Load" /></td>
+             <td><button class="delete-row-btn section-btn">Delete</button></td>
+           </tr>
+         </tbody>
+       </table>
+     </div>
+     <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+       <button id="addRow11" class="section-btn">Add Row</button>
+       <button id="save11"   class="section-btn">Save</button>
+       </div>
+   </div>
+   <div id="pan33" class="sub-section">
+     <div class="table-container">
+       <table id="table33">
+         <thead>
+           <tr>
+             <th>Sl. No.</th>
+             <th>33KV Panel Name</th>
+             <th>VCB State</th>
+             <th>Load (in A)</th>
+             <th>Action</th>
+           </tr>
+         </thead>
+         <tbody>
+           <tr>
+             <td>1</td>
+             <td><input type="text" placeholder="33KV Panel Name" /></td>
+             <td>
+               <select>
+                 <option value="" disabled selected hidden></option>
+                 <option>ON</option>
+                 <option>OFF</option>
+                 <option>VCB Missing</option>
+                 <option>Shutdown</option>
+               </select>
+             </td>
+             <td><input type="number" placeholder="Load" /></td>
+             <td><button class="delete-row-btn section-btn">Delete</button></td>
+           </tr>
+         </tbody>
+       </table>
+     </div>
+     <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+       <button id="addRow33" class="section-btn">Add Row</button>
+       <button id="save33"   class="section-btn">Save</button>       
+     </div>
+   </div>
+ </div>
+  <div id="tev" class="section">
+    <div class="sub-tab-container">
+      <button class="sub-tab-btn" data-sub="tev11">11KV Panels</button>
+      <button class="sub-tab-btn" data-sub="tev33">33KV Panels</button>
+    </div>
+
+    <div id="tev11" class="sub-section">
+
+    <!-- ── TEV 11KV: Air / Metal readings ── -->
+    <div class="table-container" style="margin-bottom:1rem;">
+      <table id="tableTEV11Extra">
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Panel Front Side Left</th>
+            <th>Panel Front Side Right</th>
+            <th>Panel Back Side Left</th>
+            <th>Panel Back Side Right</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Air</td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+          </tr>
+          <tr>
+            <td>Metal</td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+<div style="text-align:center; margin-bottom:1.5rem;">
+  <button class="YOUR‐EXISTING‐BUTTON‐CLASS">Add</button>
+</div>
+
+      <div class="table-container">
+        <table id="tableTEV11">
+          <thead>
+            <tr>
+              <th>Sl. No.</th>
+              <th>11KV Panel Name</th>
+              <th>VCB State</th>
+              <th>Load (in A)</th>
+              <th>TF1 (in dB)</th>
+              <th>TB1 (in dB)</th>
+              <th>TB2 (in dB)</th>
+              <th>TPT (in dB)</th>
+              <th>TS1 (in dB)</th>
+              <th>TS2 (in dB)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+        <button id="saveTEV11" class="section-btn">Save</button>
+      </div>
+    </div>
+
+    <div id="tev33" class="sub-section">
+
+    <!-- ── TEV 33KV: Air / Metal readings ── -->
+    <div class="table-container" style="margin-bottom:1rem;">
+      <table id="tableTEV33Extra">
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Panel Front Side Left</th>
+            <th>Panel Front Side Right</th>
+            <th>Panel Back Side Left</th>
+            <th>Panel Back Side Right</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Air</td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+          </tr>
+          <tr>
+            <td>Metal</td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+            <td><input type="number" placeholder="Value" /></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+<div style="text-align:center; margin-bottom:1.5rem;">
+  <button class="section-btn">Add</button>
+</div>
+
+
+
+      <div class="table-container">
+        <table id="tableTEV33">
+          <thead>
+            <tr>
+              <th>Sl. No.</th>
+              <th>33KV Panel Name</th>
+              <th>VCB State</th>
+              <th>Load (in A)</th>
+              <th>TF1 (in dB)</th>
+              <th>TB1 (in dB)</th>
+              <th>TB2 (in dB)</th>
+              <th>TPT (in dB)</th>
+              <th>TS1 (in dB)</th>
+              <th>TS2 (in dB)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+        <button id="saveTEV33" class="section-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="temp" class="section">
+  <div class="sub-tab-container">
+    <button class="sub-tab-btn" data-sub="temp11">11KV Panels</button>
+    <button class="sub-tab-btn" data-sub="temp33">33KV Panels</button>
+  </div>
+  <div id="temp11" class="sub-section">
+
+<!-- Ambient Temp for 11KV -->
+<div style="
+    margin-bottom:1rem;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:0.5rem;
+">
+  <label for="ambientTemp11"
+         style="font-size:0.9rem; color:#00f2ff; white-space:nowrap;">
+    Ambient Temp.
+  </label>
+  <input
+    id="ambientTemp11"
+    type="number"
+    placeholder="°C"
+    style="
+      width:90px;
+      background:#0a0f2c;
+      color:#fff;
+      border:2px solid #00f2ff;
+      border-radius:6px;
+      padding:4px 6px;
+      font-family:'Orbitron',sans-serif;
+      font-size:0.9rem;
+      box-shadow: inset 0 0 6px #00f2ff;
+    " />
+  <button id="addAmbientTemp11"
+          class="section-btn"
+          style="padding:6px 12px; font-size:0.8rem;">
+    Add
+  </button>
+</div>
+
+
+
+
+    <div class="table-container">
+      <table id="tableTemp11">
+        <thead>
+          <tr>
+            <th>Sl. No.</th>
+            <th>11KV Panel Name</th>
+            <th>VCB State</th>
+            <th>Load (in A)</th>
+            <th>F1 (in <sup>°</sup>C)</th>
+            <th>B1 (in <sup>°</sup>C)</th>
+            <th>B2 (in <sup>°</sup>C)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- rows injected by JS -->
+        </tbody>
+      </table>
+    </div>
+    <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+      <button id="saveTemp11" class="section-btn">Save</button>
+    </div>
+  </div>
+  <div id="temp33" class="sub-section">
+
+
+<!-- Ambient Temp for 33KV -->
+<div style="
+    margin-bottom:1rem;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:0.5rem;
+">
+  <label for="ambientTemp33"
+         style="font-size:0.9rem; color:#00f2ff; white-space:nowrap;">
+    Ambient Temp.
+  </label>
+  <input
+    id="ambientTemp33"
+    type="number"
+    placeholder="°C"
+    style="
+      width:90px;
+      background:#0a0f2c;
+      color:#fff;
+      border:2px solid #00f2ff;
+      border-radius:6px;
+      padding:4px 6px;
+      font-family:'Orbitron',sans-serif;
+      font-size:0.9rem;
+      box-shadow: inset 0 0 6px #00f2ff;
+    " />
+  <button id="addAmbientTemp33"
+          class="section-btn"
+          style="padding:6px 12px; font-size:0.8rem;">
+    Add
+  </button>
+</div>
+
+
+
+    <div class="table-container">
+      <table id="tableTemp33">
+        <thead>
+          <tr>
+            <th>Sl. No.</th>
+            <th>33KV Panel Name</th>
+            <th>VCB State</th>
+            <th>Load (in A)</th>
+            <th>F1 (in <sup>°</sup>C)</th>
+            <th>B1 (in <sup>°</sup>C)</th>
+            <th>B2 (in <sup>°</sup>C)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- rows injected by JS -->
+        </tbody>
+      </table>
+    </div>
+    <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+      <button id="saveTemp33" class="section-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+    <div id="ultrasound" class="section">
+    <div class="sub-tab-container">
+      <button class="sub-tab-btn" data-sub="us11">11KV Panels</button>
+      <button class="sub-tab-btn" data-sub="us33">33KV Panels</button>
+    </div>
+    <div id="us11" class="sub-section">
+      <div class="table-container">
+        <table id="tableUltrasound11">
+          <thead>
+            <tr>
+              <th>Sl. No.</th>
+              <th>11KV Panel Name</th>
+              <th>VCB State</th>
+              <th>Load (in A)</th>
+              <th>F1 (in dB)</th>
+              <th>B1 (in dB)</th>
+              <th>B2 (in dB)</th>
+              <th>PT (in dB)</th>
+              <th>S1 (in dB)</th>
+              <th>S2 (in dB)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+        <button id="saveUS11" class="section-btn">Save</button>
+      </div>
+    </div>
+    <div id="us33" class="sub-section">
+      <div class="table-container">
+        <table id="tableUltrasound33">
+          <thead>
+            <tr>
+              <th>Sl. No.</th>
+              <th>33KV Panel Name</th>
+              <th>VCB State</th>
+              <th>Load (in A)</th>
+              <th>F1 (in dB)</th>
+              <th>B1 (in dB)</th>
+              <th>B2 (in dB)</th>
+              <th>PT (in dB)</th>
+              <th>S1 (in dB)</th>
+              <th>S2 (in dB)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="action-buttons" style="margin-top:1rem; display:flex; gap:1rem; justify-content:center;">
+        <button id="saveUS33" class="section-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+<section id="battery" class="section">
+    
+  <!-- 1️. Sub-tab buttons -->
+  <div class="sub-tab-container">
+    <button class="sub-tab-btn" data-sub="bat11">
+      11KV Battery &amp; Battery Charger
+    </button>
+    <button class="sub-tab-btn" data-sub="bat33">
+      33KV Battery &amp; Battery Charger
+    </button>
+  </div>
+
+<div id="bat11" class="sub-section">
+  <!-- a) Panel Voltage table -->
+  <div class="table-container">
+    <table>
+      <caption style="caption-side:top; text-align:center; font-weight:bold; margin-bottom:0.5rem;">
+        Panel Voltage (in V)
+      </caption>
+      <thead>
+        <tr>
+          <th>AC ON</th>
+          <th>AC OFF</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <input id="bat11VoltageOn"
+                   type="number"
+                   placeholder="Voltage" />
+          </td>
+          <td>
+            <input id="bat11VoltageOff"
+                   type="number"
+                   placeholder="Voltage" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- b) General Findings -->
+  <div style="margin-top:1.5rem;">
+    <p style="font-weight:bold; margin-bottom:0.5rem;">General Findings</p>
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.5rem;">
+      <label><input type="checkbox" name="bat11GenFindings" value="Cleaning" /> Cleaning</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Manual Mode" /> Manual Mode</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Water Top-up" /> Water Top-up</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Sulphur Deposition" /> Sulphur Deposition</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Sludge Formation" /> Sludge Formation</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Top Cover Open" /> Top Cover Open</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Top Cover Broken" /> Top Cover Broken</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Earth Fault" /> Earth Fault</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Rating Mismatch" /> Rating Mismatch</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Some Batteries Defective" />
+        Some Batteries Defective</label>
+    </div>
+    <div style="margin-top:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+      <input id="bat11GenFindingsOther"
+             type="text"
+             placeholder="Other"
+             style="width:100%; box-sizing:border-box;
+                    background:#0a0f2c; color:#fff;
+                    border:2px solid #00f2ff; border-radius:6px;
+                    padding:6px 8px;" />
+    <button id="addBat11Other" class="section-btn">Add</button>
+    </div>
+  </div>
+
+  <!-- Save button -->
+  <div class="action-buttons"
+       style="margin-top:1.5rem; display:flex; justify-content:center; gap:1rem;">
+    <button id="saveBat11" class="section-btn">Save</button>
+  </div>
+</div>
+
+<div id="bat33" class="sub-section">
+  <!-- same structure, IDs/names switched to “bat33” -->
+  <div class="table-container">
+    <table>
+      <caption style="caption-side:top; text-align:center; font-weight:bold; margin-bottom:0.5rem;">
+        Panel Voltage (in V)
+      </caption>
+      <thead>
+        <tr>
+          <th>AC ON</th>
+          <th>AC OFF</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <input id="bat33VoltageOn"
+                   type="number"
+                   placeholder="Voltage" />
+          </td>
+          <td>
+            <input id="bat33VoltageOff"
+                   type="number"
+                   placeholder="Voltage" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <p style="font-weight:bold; margin-bottom:0.5rem;">General Findings</p>
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:0.5rem;">
+      <label><input type="checkbox" name="bat33GenFindings" value="Cleaning" /> Cleaning</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Manual Mode" /> Manual Mode</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Water Top-up" /> Water Top-up</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Sulphur Deposition" /> Sulphur Deposition</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Sludge Formation" /> Sludge Formation</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Top Cover Open" /> Top Cover Open</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Top Cover Broken" /> Top Cover Broken</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Earth Fault" /> Earth Fault</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Rating Mismatch" /> Rating Mismatch</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Some Batteries Defective" />
+        Some Batteries Defective</label>
+    </div>
+    <div style="margin-top:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+      <input id="bat33GenFindingsOther"
+             type="text"
+             placeholder="Other"
+             style="width:100%; box-sizing:border-box;
+                    background:#0a0f2c; color:#fff;
+                    border:2px solid #00f2ff; border-radius:6px;
+                    padding:6px 8px;" />
+  <button id="addBat33Other" class="section-btn">Add</button>
+    </div>
+  </div>
+
+  <div class="action-buttons"
+       style="margin-top:1.5rem; display:flex; justify-content:center; gap:1rem;">
+    <button id="saveBat33" class="section-btn">Save</button>
+  </div>
+</div>
+
+</section>
+
+
+
+
+
+  <div id="other" class="section">
+  <div class="sub-tab-container">
+    <button class="sub-tab-btn" data-sub="oth11">11KV Panels</button>
+    <button class="sub-tab-btn" data-sub="oth33">33KV Panels</button>
+    <button class="sub-tab-btn" data-sub="others">Others</button>
+  </div>
+  <div id="oth11" class="sub-section">
+ <div class="table-container" style="font-size:0.7rem;">
+   <table id="tableOther11" style="table-layout: fixed; width: 100%;">
+        <thead>
+          <tr>
+          <th style="width:5%;">Sl. No.</th>
+          <th style="width:15%;">11KV Panel Name</th>
+          <th style="width:80%;">Observations</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="action-buttons" style="margin-top:1rem; display:flex; justify-content:center; gap:1rem;">
+     <button id="saveOther11" class="section-btn">Save</button>
+    </div>
+  </div>
+  <div id="oth33" class="sub-section">
+    <!-- TODO: insert your 33KV Panels–Other content here -->
+  </div>
+  <div id="others" class="sub-section">
+ <div class="table-container" style="font-size:0.7rem;">
+   <table id="tableOther33" style="table-layout: fixed; width: 100%;">
+        <thead>
+          <tr>
+          <th style="width:5%;">Sl. No.</th>
+          <th style="width:15%;">33KV Panel Name</th>
+          <th style="width:80%;">Observations</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="action-buttons" style="margin-top:1rem; display:flex; justify-content:center; gap:1rem;">
+      <button id="saveOther33" class="section-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─────────── LIVE CONSOLIDATED TABLE ─────────── -->
+<h2 class="compact-live-heading" style="font-weight:bold; text-align:center; color:#00f2ff;">
+  MEASUREMENT OF PARTIAL DISCHARGE, TEMPERATURE RECORDED &amp; OTHER FINDINGS OF THE INDOOR PANELS
+</h2>
+<div id="liveTableContainer" class="table-container">
+  <table id="liveTable">
+    <thead>
+      <tr>
+        <th rowspan="2">Sl. No.</th>
+        <th rowspan="2">Panel Name</th>
+        <th rowspan="2">VCB State</th>
+        <th rowspan="2">Load (A)</th>
+        <th colspan="6">Transient Earth Voltage (in dB)</th>
+        <th colspan="3">Temperature (in °C)</th>
+        <th colspan="6">Ultrasound (in dB)</th>
+        <th rowspan="2">Action to be Taken</th>
+      </tr>
+      <tr>
+        <th>TF1</th><th>Tb1</th><th>Tb2</th><th>TPT</th><th>TS1</th><th>TS2</th>
+        <th>F1</th><th>b1</th><th>b2</th>
+        <th>UF1</th><th>Ub1</th><th>Ub2</th><th>UPT</th><th>Us1</th><th>Us2</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- rows will be injected here by your JS -->
+    </tbody>
+  </table>
+</div>
+
+
+  <!-- link to external JS -->
+  <script src="control_room.js"></script>
+</body>
+</html>
