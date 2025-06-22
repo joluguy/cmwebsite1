@@ -141,27 +141,6 @@
     font-size: 14px !important;
     padding: 8px 6px !important;
   }
-
-/* Shrink entry table fonts and padding on mobile */
-.table-container table {
-  font-size: 11px;
-}
-
-.table-container th,
-.table-container td {
-  padding: 4px 6px;
-  font-size: 11px;
-}
-
-/* Shrink inputs and selects inside entry tables */
-.table-container input,
-.table-container select {
-  font-size: 11px !important;
-  padding: 4px 6px !important;
-}
-
-
-
 }
 
 
@@ -698,14 +677,17 @@
 
 /* shrink the input + button themselves */
 #tableOther11 input[type="text"],
-#tableOther33 input[type="text"],
-#tableOther11 td > div button,
-#tableOther33 td > div button {
-  font-size: 0.65rem !important;
-  padding: 0.2rem !important;
-  height: 1.3em !important;
+#tableOther33 input[type="text"] {
+  font-size: 0.85rem !important;
+  padding: 6px 10px !important;
+  height: auto !important;
+  line-height: 1.4 !important;
 }
 
+#tableOther11 td > div button,
+#tableOther33 td > div button {
+  margin-top: 4px !important;
+}
 
 
 
@@ -717,8 +699,10 @@
 }
 #tableOther11 input[type="text"],
 #tableOther33 input[type="text"] {
-  padding: 0.25rem;
-  font-size: 0.7rem;
+  padding: 2px 4px !important;
+  font-size: 0.6rem !important;
+  height: 24px !important;
+  line-height: 1.2 !important;
 }
 
 /* ─────────── Live Table Styles ─────────── */
@@ -839,6 +823,54 @@ h2.compact-live-heading {
   width: 30px;
   max-width: 30px;
 }
+
+/* Style "Other" tab dropdowns, inputs, and buttons to match theme */
+#tableOther11 select,
+#tableOther33 select,
+#tableOther11 input[type="text"],
+#tableOther33 input[type="text"] {
+  background: #0a0f2c;
+  color: #fff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.85rem; 
+  font-family: 'Orbitron', sans-serif;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+
+#tableOther11 select:focus,
+#tableOther33 select:focus,
+#tableOther11 input[type="text"]:focus,
+#tableOther33 input[type="text"]:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+/* Style the "Add" buttons */
+
+#tableOther11 button.section-btn,
+#tableOther33 button.section-btn {
+  background-color: #111836;
+  color: #00f2ff;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+  box-shadow: 0 0 10px #00f2ff;
+  transition: all 0.3s ease;
+}
+
+#tableOther11 button.section-btn:hover,
+#tableOther33 button.section-btn:hover {
+  background-color: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+
 
   </style>
 
@@ -1464,28 +1496,47 @@ h2.compact-live-heading {
   <div class="sub-tab-container">
     <button class="sub-tab-btn" data-sub="oth11">11KV Panels</button>
     <button class="sub-tab-btn" data-sub="oth33">33KV Panels</button>
-    <button class="sub-tab-btn" data-sub="others">Others</button>
   </div>
-  <div id="oth11" class="sub-section">
- <div class="table-container" style="font-size:0.7rem;">
-   <table id="tableOther11" style="table-layout: fixed; width: 100%;">
-        <thead>
-          <tr>
-          <th style="width:5%;">Sl. No.</th>
-          <th style="width:15%;">11KV Panel Name</th>
-          <th style="width:80%;">Observations</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div class="action-buttons" style="margin-top:1rem; display:flex; justify-content:center; gap:1rem;">
-     <button id="saveOther11" class="section-btn">Save</button>
-    </div>
+
+<div id="oth11" class="sub-section">
+  <div class="table-container">
+    <table id="tableOther11" style="width: 100%; table-layout: fixed;">
+      <thead>
+        <tr>
+          <th style="width: 8%;">Sl. No.</th>
+          <th style="width: 22%;">11KV Panel Name</th>
+          <th style="width: 70%;">Observations</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
-  <div id="oth33" class="sub-section">
-    <!-- TODO: insert your 33KV Panels–Other content here -->
+  <div class="action-buttons" style="margin-top:1rem; display:flex; justify-content:center; gap:1rem;">
+    <button id="saveOther11" class="section-btn">Save</button>
   </div>
+</div>
+
+
+<div id="oth33" class="sub-section">
+  <div class="table-container">
+    <table id="tableOther33" style="width: 100%; table-layout: fixed;">
+      <thead>
+        <tr>
+          <th style="width: 8%;">Sl. No.</th>
+          <th style="width: 22%;">33KV Panel Name</th>
+          <th style="width: 70%;">Observations</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="action-buttons" style="margin-top:1rem; display:flex; justify-content:center; gap:1rem;">
+    <button id="saveOther33" class="section-btn">Save</button>
+  </div>
+</div>
+
+
+
   <div id="others" class="sub-section">
  <div class="table-container" style="font-size:0.7rem;">
    <table id="tableOther33" style="table-layout: fixed; width: 100%;">
@@ -1540,4 +1591,5 @@ h2.compact-live-heading {
   <script src="control_room.js"></script>
 </body>
 </html>
+
 
