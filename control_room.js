@@ -658,45 +658,125 @@ function populateOther11() {
   tbody.innerHTML = '';
   table11Body.querySelectorAll('tr').forEach((r, i) => {
     const tr = document.createElement('tr');
+
     // Sl. No.
     const td0 = document.createElement('td');
-    td0.textContent = i + 1; tr.appendChild(td0);
-    // Panel Name
+    td0.textContent = i + 1;
+    tr.appendChild(td0);
+
+    // 11KV Panel Name
     const td1 = document.createElement('td');
     td1.textContent = r.cells[1].querySelector('input').value;
     tr.appendChild(td1);
-    // Observations (checkboxes + manual entry)
+
+    // Observations column
     const td2 = document.createElement('td');
-    const obsList = [
-      'No H.','H. Check','HD','BHD','CHD','1 HD','2 HD',
-      'H.Sht.Ckt.','Amp. Def.','Volt. Def.','H.Amp.Def.',
-      'Dust & Spider','Huge Dust & Spider','Panel Gap','Panel Hole'
-    ];
-    obsList.forEach(text => {
-      const label = document.createElement('label');
-      label.style.display    = 'inline-block';
-      label.style.marginRight = '0.5rem';
-      label.style.fontSize    = '0.7rem';;
-      const cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.value = text; cb.name = `other11_obs_${i}`;
-      label.appendChild(cb);
-      label.append(' ' + text);
-      td2.appendChild(label);
+
+    const categorySelect = document.createElement('select');
+    const itemSelect = document.createElement('select');
+
+
+const categories = {
+      'Heater': [
+        'No Heater found', 'Heater is to be checked', 'Heater Defective',
+        'Breaker Chamber Heater Defective', 'Cable Chamber Heater Defective',
+        '1 no. Heater Defective', '2 nos. Heater Defective', 'All Heaters defective',
+        'Heater Ckt. Short-Ckt.', 'Heater Ammeter Defective', 'Heater Toggle Switch Defective',
+        'Thermostat Problem'
+      ],
+      'Phase Ammeter': [
+        'R-Ph Ammeter Defective', 'Y-Ph Ammeter Defective', 'B-Ph Ammeter Defective',
+        'All Ammeters Defective', 'R-Ph Ammeter Display Problem',
+        'Y-Ph Ammeter Display Problem', 'B-Ph Ammeter Display Problem',
+        'All Ammeters Display Problem'
+      ],
+      'Voltmeter': ['Voltmeter Defective', 'Voltmeter Display Problem'],
+      'PT': ['PT Out of Circuit'],
+      'Relay': [
+        'Relay Healthy LED not glowing', 'Trip Ckt. Unhealthy Indication on relay', 'Relay Display Out',
+        'Replay Display Problem', 'HMI Key Defective', 'Clear button of relay defective',
+        'O/C E/F Relay Missing'
+      ],
+      'Annunciator': ['Annunciator Defective', 'Trip Ckt. Unhealthy Showing'],
+      'Panel': [
+        'Front Door not closing properly', 'Rear Cover not closing properly',
+        'Panel Gap', 'Panel Hole', 'TNC Switch Broken', 'TNC Switch Defective',
+        'Breaker ON indication not glowing', 'Dust & Spider', 'Huge Dust & Spider',
+        'Cable Trench Cover Missing', 'Safety Mat near Panel Missing'
+      ]
+    };
+
+
+   // Default options
+    categorySelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+    Object.keys(categories).forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = cat;
+      categorySelect.appendChild(opt);
     });
-    // “Other” text + Add button
-    const divOther = document.createElement('div');
-    divOther.style.marginTop = '0.5rem';
-    const input = document.createElement('input');
-    input.type = 'text'; input.placeholder = 'Other'; input.style.width = '70%';
-    const btn = document.createElement('button');
-    btn.textContent = 'Add'; btn.className = 'section-btn'; btn.style.fontSize = '0.7rem';
-    divOther.append(input, btn);
-    td2.appendChild(divOther);
+
+    itemSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+
+    categorySelect.addEventListener('change', () => {
+      const selected = categorySelect.value;
+      itemSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+      categories[selected].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = val;
+        itemSelect.appendChild(opt);
+      });
+    });
+
+const btn = document.createElement('button');
+btn.textContent = 'Add';
+btn.className = 'section-btn';
+btn.style.fontSize = '0.7rem';
+btn.style.padding = '4px 6px';
+btn.style.marginLeft = '0.5rem';
+btn.style.flex = 'none';
+
+
+    const manualInput = document.createElement('input');
+    manualInput.type = 'text';
+    manualInput.placeholder = 'Other';
+    manualInput.style.marginTop = '0.5rem';
+    manualInput.style.width = '70%';
+
+    const btn2 = document.createElement('button');
+    btn2.textContent = 'Add';
+    btn2.className = 'section-btn';
+    btn2.style.marginLeft = '0.5rem';
+    btn2.style.fontSize = '0.7rem';
+    btn2.style.padding = '4px 6px';
+
+const dropdownWrapper = document.createElement('div');
+dropdownWrapper.style.display = 'flex';
+dropdownWrapper.style.flexWrap = 'nowrap';
+dropdownWrapper.style.gap = '0.5rem';
+dropdownWrapper.style.alignItems = 'center';
+dropdownWrapper.style.marginBottom = '0.5rem';
+
+[categorySelect, itemSelect].forEach(el => {
+  el.style.fontSize = '0.7rem';
+  el.style.padding = '4px 6px';
+  el.style.flex = '1';
+});
+
+
+dropdownWrapper.appendChild(categorySelect);
+dropdownWrapper.appendChild(itemSelect);
+dropdownWrapper.appendChild(btn);
+
+td2.appendChild(dropdownWrapper);
+
+    td2.appendChild(manualInput);
+    td2.appendChild(btn2);
 
     tr.appendChild(td2);
     tbody.appendChild(tr);
   });
 }
+
 
 // Build rows for “Other → 33KV Panels” (identical logic)
 function populateOther33() {
@@ -704,46 +784,119 @@ function populateOther33() {
   tbody.innerHTML = '';
   table33Body.querySelectorAll('tr').forEach((r, i) => {
     const tr = document.createElement('tr');
+
     // Sl. No.
     const td0 = document.createElement('td');
-    td0.textContent = i + 1; tr.appendChild(td0);
-    // Panel Name
+    td0.textContent = i + 1;
+    tr.appendChild(td0);
+
+    // 33KV Panel Name
     const td1 = document.createElement('td');
     td1.textContent = r.cells[1].querySelector('input').value;
     tr.appendChild(td1);
-    // Observations
-    const td2 = document.createElement('td');
-    const obsList = [
-      'No Heater','Heater Check','HD','BHD','CHD','1 HD','2 HD',
-      'Heater Sht. Ckt.','Amp. Def.','Volt. Def.','Heater Amp. Def.',
-      'Dust & Spider Web','Huge Dust & Spider','Panel Gap','Panel Hole'
-    ];
-    obsList.forEach(text => {
-      const label = document.createElement('label');
-      label.style.display    = 'inline-block';
-      label.style.marginRight = '0.5rem';
-      label.style.fontSize    = '0.7rem';
 
-      const cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.value = text; cb.name = `other33_obs_${i}`;
-      label.appendChild(cb);
-      label.append(' ' + text);
-      td2.appendChild(label);
+    // Observations column
+    const td2 = document.createElement('td');
+
+    const categorySelect = document.createElement('select');
+    const itemSelect = document.createElement('select');
+
+    const categories = {
+      'Heater': [
+        'No Heater found', 'Heater is to be checked', 'Heater Defective',
+        'Breaker Chamber Heater Defective', 'Cable Chamber Heater Defective',
+        '1 no. Heater Defective', '2 nos. Heater Defective', 'All Heaters defective',
+        'Heater Ckt. Short-Ckt.', 'Heater Ammeter Defective', 'Heater Toggle Switch Defective',
+        'Thermostat Problem'
+      ],
+      'Phase Ammeter': [
+        'R-Ph Ammeter Defective', 'Y-Ph Ammeter Defective', 'B-Ph Ammeter Defective',
+        'All Ammeters Defective', 'R-Ph Ammeter Display Problem',
+        'Y-Ph Ammeter Display Problem', 'B-Ph Ammeter Display Problem',
+        'All Ammeters Display Problem'
+      ],
+      'Voltmeter': ['Voltmeter Defective', 'Voltmeter Display Problem'],
+      'PT': ['PT Out of Circuit'],
+      'Relay': [
+        'Relay Healthy LED not glowing', 'Trip Ckt. Unhealthy Indication on relay', 'Relay Display Out',
+        'Replay Display Problem', 'HMI Key Defective', 'Clear button of relay defective',
+        'O/C E/F Relay Missing'
+      ],
+      'Annunciator': ['Annunciator Defective', 'Trip Ckt. Unhealthy Showing'],
+      'Panel': [
+        'Front Door not closing properly', 'Rear Cover not closing properly',
+        'Panel Gap', 'Panel Hole', 'TNC Switch Broken', 'TNC Switch Defective',
+        'Breaker ON indication not glowing', 'Dust & Spider', 'Huge Dust & Spider',
+        'Cable Trench Cover Missing', 'Safety Mat near Panel Missing'
+      ]
+    };
+
+    categorySelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+    Object.keys(categories).forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = cat;
+      categorySelect.appendChild(opt);
     });
-    // Manual entry
-    const divOther = document.createElement('div');
-    divOther.style.marginTop = '0.5rem';
-    const input = document.createElement('input');
-    input.type = 'text'; input.placeholder = 'Other'; input.style.width = '70%';
+
+    itemSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+    categorySelect.addEventListener('change', () => {
+      const selected = categorySelect.value;
+      itemSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+      categories[selected].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = val;
+        itemSelect.appendChild(opt);
+      });
+    });
+
     const btn = document.createElement('button');
-    btn.textContent = 'Add'; btn.className = 'section-btn'; btn.style.fontSize = '0.7rem';
-    divOther.append(input, btn);
-    td2.appendChild(divOther);
+    btn.textContent = 'Add';
+    btn.className = 'section-btn';
+    btn.style.fontSize = '0.7rem';
+    btn.style.padding = '4px 6px';
+    btn.style.marginLeft = '0.5rem';
+    btn.style.flex = 'none';
+
+    const manualInput = document.createElement('input');
+    manualInput.type = 'text';
+    manualInput.placeholder = 'Other';
+    manualInput.style.marginTop = '0.5rem';
+    manualInput.style.width = '70%';
+
+    const btn2 = document.createElement('button');
+    btn2.textContent = 'Add';
+    btn2.className = 'section-btn';
+    btn2.style.marginLeft = '0.5rem';
+    btn2.style.fontSize = '0.7rem';
+    btn2.style.padding = '4px 6px';
+
+    const dropdownWrapper = document.createElement('div');
+    dropdownWrapper.style.display = 'flex';
+    dropdownWrapper.style.flexWrap = 'nowrap';
+    dropdownWrapper.style.gap = '0.5rem';
+    dropdownWrapper.style.alignItems = 'center';
+    dropdownWrapper.style.marginBottom = '0.5rem';
+
+    [categorySelect, itemSelect].forEach(el => {
+      el.style.fontSize = '0.7rem';
+      el.style.padding = '4px 6px';
+      el.style.flex = '1';
+    });
+
+    dropdownWrapper.appendChild(categorySelect);
+    dropdownWrapper.appendChild(itemSelect);
+    dropdownWrapper.appendChild(btn);
+
+    td2.appendChild(dropdownWrapper);
+    td2.appendChild(manualInput);
+    td2.appendChild(btn2);
 
     tr.appendChild(td2);
     tbody.appendChild(tr);
   });
 }
+
+
 
 // 11KV live-sync
 table11Body.addEventListener('input', () => {
@@ -787,11 +940,9 @@ otherSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
     otherSection.querySelector('#' + btn.dataset.sub)
       .classList.add('active');
 
-    if (otherInit[btn.dataset.sub]) {
-      if (btn.dataset.sub === 'oth11') populateOther11();
-      else if (btn.dataset.sub === 'oth33') populateOther33();
-      otherInit[btn.dataset.sub] = false;
-    }
+if (btn.dataset.sub === 'oth11') populateOther11();
+else if (btn.dataset.sub === 'oth33') populateOther33();
+
   });
 });
 
@@ -990,6 +1141,12 @@ tr.appendChild(actionTd);
     table33Body.addEventListener(evt, populateLiveTable);
   });
 
+['input','change'].forEach(evt => {
+  table11Body.addEventListener(evt, populateOther11);
+  table33Body.addEventListener(evt, populateOther33);
+});
+
+
 // fire on any change in your Temperature tables:
 document.querySelector('#tableTemp11 tbody').addEventListener('input', populateLiveTable);
 document.querySelector('#tableTemp11 tbody').addEventListener('change', populateLiveTable);
@@ -1026,3 +1183,4 @@ populateLiveTable();
 
 
 });
+
