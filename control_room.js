@@ -3,6 +3,47 @@
 // 1. Populate the substation name from localStorage (or a default)
   document.addEventListener('DOMContentLoaded', () => {
 
+// Persist manual "Other" actions across live-table rebuilds
+ const otherActionsStore = {
+   '11':  {},
+   '33':  {},
+   'Battery & Battery Charger': []
+ };
+
+// Store manual “Other” entries so they persist across recalcBatActions
+const manualBatEntries = [];
+
+
+// Map generic 11 kV checkbox labels to their action-text
+const FINDING_MAP_11 = {
+  'Cleaning':
+    'Battery Cell Terminals (corresponding to 11KV Panels) are to be cleaned.',
+  'Water Top-up':
+    'Water top up is required at some of the Battery Cells (Corresponding to 11KV panels).',
+  'Sludge Formation':
+    'Sludge formations have been observed in some of the battery cell (corresponding to 11KV Panels). Necessary action is to be taken.',
+  'Top Cover Broken':
+    'Some of battery cells’ top cover found to be broken (corresponding to 11KV panels). Appropriate action is to be taken to prevent deposition of dust and dirt to acid water which can deteriorate the cells.',
+  'Rating Mismatch':
+    'On the Batter Set for the 11KV panels, some of batteries were found to be of rating 100AH and some of the batteries were found to be of 75AH. Immediate necessary action is to be taken to make all the batteries in the battery set having same rating as the mismatch in capacity can lead to uneven charging/discharging, reduced overall battery performance, and potential system imbalance or failure.',
+  'Exhaust Fan':
+    'Exhaust Fan in the Battery Room was found to be missing. Exhaust fan is to be installed in the Battery room and the fan is to be kept in ON condition continuously.',
+  'Sulphur Deposition':
+    'Sulphur deposition has been found on the battery Cells (corresponding to 11KV Panels). Cleaning and greasing of battery cells are required lead to avoid sulphur deposition.',
+  'Top Cover Open':
+    'Some of battery cells’ top cover found to be open (corresponding to 11KV panels). Appropriate action is to be taken to prevent deposition of dust and dirt to acid water which can deteriorate the cells.',
+  'Earth Fault':
+    'Earth fault is showing at the battery charger for 11KV panels. Short circuit with earth has occurred at either 11KV panel side or charger side. This short circuit needs to be identified and rectified immediately to avoid malfunction of the relays.',
+  'Manual Mode':
+    'Battery Charger corresponding to 11KV Panels is running in manual mode. Problems of the chargers to be rectified so that the chargers can run in auto mode.',
+  'Charger Rating Mismatch':
+    '100AH battery cells (corresponding to 11KV panels) are being charged with 16A battery charger. Appropriate action is to be taken to replace the charger with 35A battery charger for healthy life of cells.'
+};
+
+
+
+
+
   // ↓ Group all your table-body refs here ↓
   const table11Body = document.querySelector('#table11 tbody');
   const table33Body = document.querySelector('#table33 tbody');
@@ -297,19 +338,11 @@ document.getElementById('saveTemp33').addEventListener('click', () => {
 
 
 // live-sync Temp tables whenever Panel-Load inputs change
-table11Body.addEventListener('input', () => {
-  if (
-    document.getElementById('temp').classList.contains('active') &&
-    document.getElementById('temp11').classList.contains('active')
-  ) populateTemp11();
-});
+table11Body.addEventListener('input',  populateTemp11);
+table11Body.addEventListener('change', populateTemp11);
+table33Body.addEventListener('input',  populateTemp33);
+table33Body.addEventListener('change', populateTemp33);
 
-table33Body.addEventListener('input', () => {
-  if (
-    document.getElementById('temp').classList.contains('active') &&
-    document.getElementById('temp33').classList.contains('active')
-  ) populateTemp33();
-});
 
 // ==== wire up nested sub-tabs under #ultrasound with first-click guard ====
 const ultrasoundSection = document.getElementById('ultrasound');
@@ -539,32 +572,11 @@ tevSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
     alert('33KV TEV data saved');
   });
 
-  // live-sync TEV when Panel-Load changes
-  table11Body.addEventListener('input', () => {
-    if (
-      document.getElementById('tev').classList.contains('active') &&
-      document.querySelector('#tev .sub-tab-btn.active[data-sub="tev11"]')
-    ) populateTEV11();
-  });
-  table33Body.addEventListener('input', () => {
-    if (
-      document.getElementById('tev').classList.contains('active') &&
-      document.querySelector('#tev .sub-tab-btn.active[data-sub="tev33"]')
-    ) populateTEV33();
-  });
-
-  table11Body.addEventListener('change', () => {
-    if (
-      document.getElementById('tev').classList.contains('active') &&
-      document.querySelector('#tev .sub-tab-btn.active[data-sub="tev11"]')
-    ) populateTEV11();
-  });
-  table33Body.addEventListener('change', () => {
-    if (
-      document.getElementById('tev').classList.contains('active') &&
-      document.querySelector('#tev .sub-tab-btn.active[data-sub="tev33"]')
-    ) populateTEV33();
-  });
+// live-sync TEV tables whenever Panel-Load inputs change
+table11Body.addEventListener('input',  populateTEV11);
+table11Body.addEventListener('change', populateTEV11);
+table33Body.addEventListener('input',  populateTEV33);
+table33Body.addEventListener('change', populateTEV33);
 
 
 
@@ -599,10 +611,15 @@ batterySection.querySelectorAll('.sub-tab-btn').forEach(btn => {
   // --- Save logic for 11KV Battery & Battery Charger ---
   document.getElementById('saveBat11').addEventListener('click', () => {
     const bat11Data = {
-      voltage: {
-        acOn:  document.getElementById('bat11VoltageOn').value,
-        acOff: document.getElementById('bat11VoltageOff').value
-      },
+    voltage: {
+    acOn:       document.getElementById('bat11VoltageOn').value,
+    acOff:      document.getElementById('bat11VoltageOff').value,
+    problemOn:  document.getElementById('bat11VoltageOnProblem').checked,
+    problemOff: document.getElementById('bat11VoltageOffProblem').checked
+    },
+
+     cellVoltage: document.getElementById('bat11CellVoltage').value,
+
       generalFindings: Array.from(
         document.querySelectorAll('#bat11 input[name="bat11GenFindings"]:checked')
       ).map(cb => cb.value),
@@ -610,15 +627,53 @@ batterySection.querySelectorAll('.sub-tab-btn').forEach(btn => {
     };
     localStorage.setItem('bat11Data', JSON.stringify(bat11Data));
     alert('11KV Battery & Battery Charger data saved');
+
+  // ── Generate Battery & Battery Charger actions ──
+  const batActions = otherActionsStore['Battery & Battery Charger'];
+  const { acOn, acOff, problemOn, problemOff } = bat11Data.voltage;
+
+  // (i) Only AC‐OFF problem
+  if (problemOff && !problemOn) {
+    batActions.push(
+      `11KV Panel voltage drops to ${acOff}V when charger AC input is OFF. Problem found in battery charger. The charger is unable to send the battery voltage to 11 KV Panel when AC input is OFF. So, Charger output voltage to be increased to such a value that sufficient voltage can reach to the panels. Cross section of the cables (From charger to panels) is also to be checked and increased if necessary.`
+    );
+  }
+  // (ii) Both AC‐ON & AC‐OFF
+  if (problemOn && problemOff) {
+    batActions.push(
+      `11KV panel voltage drops to ${acOn}V when charger AC input is ON and ${acOff}V when charger AC input is OFF. Problem found in battery charger. The charger is unable to send the battery voltage to 11 KV panel when AC input is OFF. So, Charger output voltage to be increased to such a value that sufficient voltage can reach to the panels. Cross section of the cables (From charger to panels) is also to be checked and increased if necessary.`
+    );
+  }
+  // (iii) Defective batteries
+  if (bat11Data.generalFindings.includes('Some Batteries Defective')) {
+    batActions.push(
+      `Battery Cell voltage corresponding to 11KV Panels found to be ${bat11Data.cellVoltage}V. Hence, individual cell voltages are to be measured to identify the defective voltage and necessary action is to be taken towards replacement of the defective battery cells with the healthy one of the same rating.`
+    );
+  }
+  // (iv–xiv) map remaining checkboxes
+  bat11Data.generalFindings.forEach(f => {
+    if (FINDING_MAP_11[f]) batActions.push(FINDING_MAP_11[f]);
+  });
+
+  // finally, refresh the Live Table
+  populateLiveTable();
+
   });
 
   // --- Save logic for 33KV Battery & Battery Charger ---
   document.getElementById('saveBat33').addEventListener('click', () => {
     const bat33Data = {
-      voltage: {
-        acOn:  document.getElementById('bat33VoltageOn').value,
-        acOff: document.getElementById('bat33VoltageOff').value
-      },
+    voltage: {
+    acOn:       document.getElementById('bat33VoltageOn').value,
+    acOff:      document.getElementById('bat33VoltageOff').value,
+    problemOn:  document.getElementById('bat33VoltageOnProblem').checked,
+    problemOff: document.getElementById('bat33VoltageOffProblem').checked
+    },
+
+      
+     cellVoltage: document.getElementById('bat33CellVoltage').value,
+
+
       generalFindings: Array.from(
         document.querySelectorAll('#bat33 input[name="bat33GenFindings"]:checked')
       ).map(cb => cb.value),
@@ -626,7 +681,114 @@ batterySection.querySelectorAll('.sub-tab-btn').forEach(btn => {
     };
     localStorage.setItem('bat33Data', JSON.stringify(bat33Data));
     alert('33KV Battery & Battery Charger data saved');
+
+   });
+
+
+// ── Auto-sync Battery & Battery Charger actions on any field change ──
+function recalcBatActions() {
+  // clear previous
+  otherActionsStore['Battery & Battery Charger'] = [];
+  const bat = otherActionsStore['Battery & Battery Charger'];
+
+  // 11 kV logic
+  const acOn11   = document.getElementById('bat11VoltageOn').value;
+  const acOff11  = document.getElementById('bat11VoltageOff').value;
+  const pOn11    = document.getElementById('bat11VoltageOnProblem').checked;
+  const pOff11   = document.getElementById('bat11VoltageOffProblem').checked;
+  const cellV11  = document.getElementById('bat11CellVoltage').value;
+  const find11   = Array.from(
+    document.querySelectorAll('#bat11 input[name="bat11GenFindings"]:checked')
+  ).map(cb => cb.value);
+
+  if (pOff11 && !pOn11) {
+    bat.push(
+      `11KV Panel voltage drops to ${acOff11}V when charger AC input is OFF. Problem found in battery charger. The charger is unable to send the battery voltage to 11 KV Panel when AC input is OFF. So, Charger output voltage to be increased to such a value that sufficient voltage can reach to the panels. Cross section of the cables (From charger to panels) is also to be checked and increased if necessary.`
+    );
+  }
+  if (pOn11 && pOff11) {
+    bat.push(
+      `11KV panel voltage drops to ${acOn11}V when charger AC input is ON and ${acOff11}V when charger AC input is OFF. Problem found in battery charger. The charger is unable to send the battery voltage to 11 KV panel when AC input is OFF. So, Charger output voltage to be increased to such a value that sufficient voltage can reach to the panels. Cross section of the cables (From charger to panels) is also to be checked and increased if necessary.`
+    );
+  }
+  if (find11.includes('Some Batteries Defective')) {
+    bat.push(
+      `Battery Cell voltage corresponding to 11KV Panels found to be ${cellV11}V. Hence, individual cell voltages are to be measured to identify the defective voltage and necessary action is to be taken towards replacement of the defective battery cells with the healthy one of the same rating.`
+    );
+  }
+  find11.forEach(f => {
+    if (FINDING_MAP_11[f]) bat.push(FINDING_MAP_11[f]);
   });
+
+  // 33 kV logic – same as above but swap “11KV” → “33KV”
+  const acOn33   = document.getElementById('bat33VoltageOn').value;
+  const acOff33  = document.getElementById('bat33VoltageOff').value;
+  const pOn33    = document.getElementById('bat33VoltageOnProblem').checked;
+  const pOff33   = document.getElementById('bat33VoltageOffProblem').checked;
+  const cellV33  = document.getElementById('bat33CellVoltage').value;
+  const find33   = Array.from(
+    document.querySelectorAll('#bat33 input[name="bat33GenFindings"]:checked')
+  ).map(cb => cb.value);
+
+  if (pOff33 && !pOn33) {
+    bat.push(
+      `33KV Panel voltage drops to ${acOff33}V when charger AC input is OFF. Problem found in battery charger. The charger is unable to send the battery voltage to 33 KV Panel when AC input is OFF. So, Charger output voltage to be increased to such a value that sufficient voltage can reach to the panels. Cross section of the cables (From charger to panels) is also to be checked and increased if necessary.`
+    );
+  }
+  if (pOn33 && pOff33) {
+    bat.push(
+      `33KV panel voltage drops to ${acOn33}V when charger AC input is ON and ${acOff33}V when charger AC input is OFF. Problem found in battery charger. The charger is unable to send the battery voltage to 33 KV panel when AC input is OFF. So, Charger output voltage to be increased to such a value that sufficient voltage can reach to the panels. Cross section of the cables (From charger to panels) is also to be checked and increased if necessary.`
+    );
+  }
+  if (find33.includes('Some Batteries Defective')) {
+    bat.push(
+      `Battery Cell voltage corresponding to 33KV Panels found to be ${cellV33}V. Hence, individual cell voltages are to be measured to identify the defective voltage and necessary action is to be taken towards replacement of the defective battery cells with the healthy one of the same rating.`
+    );
+  }
+  find33.forEach(f => {
+    if (FINDING_MAP_11[f]) bat.push(FINDING_MAP_11[f].replace(/11KV/g, '33KV'));
+  });
+  // ── Re-append any manual “Other” entries from both tabs
+  manualBatEntries.forEach(txt => bat.push(txt));
+
+}
+
+// Wire it to live-sync on any change in the two sub-tables:
+['input','change'].forEach(evt => {
+  document.getElementById('bat11').addEventListener(evt, () => {
+    recalcBatActions();
+    populateLiveTable();
+  });
+  document.getElementById('bat33').addEventListener(evt, () => {
+    recalcBatActions();
+    populateLiveTable();
+  });
+});
+
+// ── NEW: Manual “Other” entries for Battery & Battery Charger ──
+document.getElementById('addBat11Other').addEventListener('click', () => {
+  const fld = document.getElementById('bat11GenFindingsOther');
+  const txt = fld.value.trim();
+  if (!txt) return alert('Enter observation');
+  // save in manualBatEntries and clear
+  manualBatEntries.push(txt);
+  fld.value = '';
+  // rebuild & refresh
+  recalcBatActions();
+  populateLiveTable();
+});
+
+document.getElementById('addBat33Other').addEventListener('click', () => {
+  const fld = document.getElementById('bat33GenFindingsOther');
+  const txt = fld.value.trim();
+  if (!txt) return alert('Enter observation');
+  manualBatEntries.push(txt);
+  fld.value = '';
+  recalcBatActions();
+  populateLiveTable();
+});
+
+
 
   // Ambient-Temp storage & “Add” button for Temp11
   const ambient11List = JSON.parse(localStorage.getItem('ambientTemp11Data') || '[]');
@@ -684,25 +846,27 @@ const categories = {
         'Heater Ckt. Short-Ckt.', 'Heater Ammeter Defective', 'Heater Toggle Switch Defective',
         'Thermostat Problem'
       ],
+      
       'Phase Ammeter': [
         'R-Ph Ammeter Defective', 'Y-Ph Ammeter Defective', 'B-Ph Ammeter Defective',
         'All Ammeters Defective', 'R-Ph Ammeter Display Problem',
         'Y-Ph Ammeter Display Problem', 'B-Ph Ammeter Display Problem',
         'All Ammeters Display Problem'
       ],
+
       'Voltmeter': ['Voltmeter Defective', 'Voltmeter Display Problem'],
-      'PT': ['PT Out of Circuit'],
-      'Relay': [
-        'Relay Healthy LED not glowing', 'Trip Ckt. Unhealthy Indication on relay', 'Relay Display Out',
+
+      'PT': ['PT Out of Circuit', 'PT Missing'],
+
+      'Relay': ['Relay Healthy LED not glowing', 'Trip Ckt. Unhealthy Indication on relay', 'Relay Display Out',
         'Replay Display Problem', 'HMI Key Defective', 'Clear button of relay defective',
         'O/C E/F Relay Missing'
       ],
-      'Annunciator': ['Annunciator Defective', 'Trip Ckt. Unhealthy Showing'],
-      'Panel': [
-        'Front Door not closing properly', 'Rear Cover not closing properly',
-        'Panel Gap', 'Panel Hole', 'TNC Switch Broken', 'TNC Switch Defective',
-        'Breaker ON indication not glowing', 'Dust & Spider', 'Huge Dust & Spider',
-        'Cable Trench Cover Missing', 'Safety Mat near Panel Missing'
+
+      'Annunciator': ['Annunciator Defective', 'Trip Ckt. Unhealthy Showing', 'Hooter not working'],
+
+      'Panel': [ 'Front Door not closing properly', 'Rear Cover not closing properly', 'TNC Switch Broken', 'TNC Switch Defective',
+        'Breaker ON indication not glowing' 
       ]
     };
 
@@ -736,18 +900,114 @@ btn.style.marginLeft = '0.5rem';
 btn.style.flex = 'none';
 
 
+btn.addEventListener('click', () => {
+  const item = itemSelect.value;
+  const panelName = r.cells[1].querySelector('input').value.trim();
+  if (!panelName) return alert('Enter Panel Name first');
+
+  const actionsMap = {
+    'Heater is to be checked': 'Space heaters should be checked.',
+    'Heater Defective': 'Space heater was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of VCB & line spouts from moisture.',
+    'Breaker Chamber Heater Defective': 'Space heater of VCB Chamber was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of VCB & line spouts from moisture.',
+    'Cable Chamber Heater Defective': 'Space heater of Cable/CT Chamber was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of Cable, CT & line spouts from moisture.',
+    '1 no. Heater Defective': 'One no. Space heater was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of Bus & line spouts from moisture.',
+    '2 nos. Heater Defective': 'Two nos. Space heaters were found defective. Hence, heater circuits must be checked and necessary rectification is to be taken for protection of Bus & line spouts from moisture.',
+    'All Heaters defective': 'All Space heaters were found defective. Hence, heater circuits must be checked and necessary rectification is to be taken for protection of Bus & line spouts from moisture.',
+    'Heater Ckt. Short-Ckt.': 'HD circuits were found as short circuited. Necessary action is to be taken.',
+    'Heater Ammeter Defective': 'Ammeter of the Space heater was found to be defective. Necessary action to be taken to address the same.',
+    'Heater Toggle Switch Defective': 'Heater Toggle Switch was found to be Defective. Necessary action is to be taken.',
+    'Thermostat Problem': 'Problem in thermostat was noticed.  Necessary action is to be taken. Also, Heater thermostat settings must be checked and & it should be in between 40’C to 45’C.',
+    'R-Ph Ammeter Defective': 'R-Phase Ammeter was found to be defective. Necessary action to be taken.',
+    'Y-Ph Ammeter Defective': 'Y-Phase Ammeter was found to be defective. Necessary action to be taken.',
+    'B-Ph Ammeter Defective': 'B-Phase Ammeter was found to be defective. Necessary action to be taken.',
+    'All Ammeters Defective': 'All Phase Ammeters were found to be defective. Necessary action to be taken.',
+    'R-Ph Ammeter Display Problem': 'Display of R-Phase Ammeter was found to be defective. Necessary action is to be taken.',
+    'Y-Ph Ammeter Display Problem': 'Display of Y-Phase Ammeter was found to be defective. Necessary action is to be taken.',
+    'B-Ph Ammeter Display Problem': 'Display of B-Phase Ammeter was found to be defective. Necessary action is to be taken.',
+    'All Ammeters Display Problem': 'Display of All Phase Ammeters were found to be defective. Necessary action is to be taken.',
+   'Voltmeter Defective': 'Display of Voltmeter was found to be defective. Necessary action is to be taken.',
+   'Voltmeter Display Problem': 'Display of Voltmeter was found to be defective. Necessary action is to be taken.',
+   'PT Out of Circuit': 'PT was found to be out of circuit. Necessary action is to be taken.',
+   'PT Missing': 'PT was found to be missing. Necessary action is to be taken.',
+   'Relay Healthy LED not glowing': '"Relay Healthy" LED was not glowing on the O/C E/F Relay. Immediate necessary action is to be taken.',
+   'Trip Ckt. Unhealthy Indication on relay': '"Trip Ckt. Unhealthy" indication was showing on the relay. Immediate necessary action is to be taken.',
+   'Relay Display Out': 'No display was visible on the Relay. Necessary action is to be taken.',
+   'Replay Display Problem': 'Display of the O/C E/F Relay was found to be defective. Necessary action is to be taken.',
+   'HMI Key Defective': 'HMI Key of the O/C E/F Relay was found to be defective. Necessary action is to be taken.',
+   'Clear button of relay defective': 'Clear button of the O/C E/F Relay was found to be defective. Necessary action is to be taken.',
+   'Annunciator Defective': 'Annunciator was found to be defective. Necessary action is to be taken.',
+   'Trip Ckt. Unhealthy Showing': '"Trip Ckt. Unhealthy" indication was showing on the Annunciator. Immediate necessary action is to be taken.',
+   'Hooter Not working':'Hooter was found to be defective. Immediate necessary action is to be taken.',
+   'Front Door not closing properly': 'Front door of the VCB chamber is not closing properly. Immediate necessary action is to be taken.',
+   'Rear Cover not closing properly': 'Rear side cover of the panel is not closing properly. Immediate necessary action is to be taken.',
+   'TNC Switch Broken': 'TNC Switch was found to be Broken. Immediate necessary action is to be taken.',
+   'TNC Switch Defective': 'TNC Switch was found to be defective. Immediate necessary action is to be taken.',
+   'Breaker ON indication not glowing': 'Breaker "ON" indication was not glowing. Immediate necessary action is to be taken.'
+
+  };
+
+  const actionText = actionsMap[item];
+  if (!actionText) return;
+
+  const liveRows = [...document.querySelectorAll('#liveTable tbody tr')];
+  const row = liveRows.find(row =>
+  row.getAttribute('data-kv') === '11' &&
+  row.cells[1]?.textContent?.trim() === panelName
+);
+
+
+  if (!row) return alert('Panel not found in Live Table');
+
+  const td = row.querySelector('td:last-child');
+
+// Store the new manual action, then rebuild the live table so it appears
+otherActionsStore['11'][panelName] = otherActionsStore['11'][panelName] || [];
+if (otherActionsStore['11'][panelName].includes(actionText)) {
+  return alert('This action has already been added for this panel.');
+}
+otherActionsStore['11'][panelName].push(actionText);
+populateLiveTable();
+
+
+});
+
+
+
+    // Manual-entry field
     const manualInput = document.createElement('input');
     manualInput.type = 'text';
     manualInput.placeholder = 'Other';
     manualInput.style.marginTop = '0.5rem';
     manualInput.style.width = '70%';
 
+
+    // “Add” button for manual entry
     const btn2 = document.createElement('button');
     btn2.textContent = 'Add';
     btn2.className = 'section-btn';
     btn2.style.marginLeft = '0.5rem';
     btn2.style.fontSize = '0.7rem';
     btn2.style.padding = '4px 6px';
+
+
+    // ── NEW: when user clicks “Add”, store & refresh live table ──
+    btn2.addEventListener('click', () => {
+      const text      = manualInput.value.trim();
+      const panelName = r.cells[1].querySelector('input').value.trim();
+      if (!panelName) return alert('Enter Panel Name first');
+      if (!text)      return alert('Enter observation');
+      otherActionsStore['11'][panelName] = otherActionsStore['11'][panelName] || [];
+      if (otherActionsStore['11'][panelName].includes(text)) {
+        return alert('This action has already been added for this panel.');
+      }
+      otherActionsStore['11'][panelName].push(text);
+      manualInput.value = '';
+      populateLiveTable();
+    });
+
+
+
+
 
 const dropdownWrapper = document.createElement('div');
 dropdownWrapper.style.display = 'flex';
@@ -816,18 +1076,16 @@ function populateOther33() {
         'All Ammeters Display Problem'
       ],
       'Voltmeter': ['Voltmeter Defective', 'Voltmeter Display Problem'],
-      'PT': ['PT Out of Circuit'],
+      'PT': ['PT Out of Circuit', 'PT Missing'],
       'Relay': [
-        'Relay Healthy LED not glowing', 'Trip Ckt. Unhealthy Indication on relay', 'Relay Display Out',
+        'Diffrential Relay Healthy LED not glowing', 'O/C E/F Relay Healthy LED not glowing','Trip Ckt. Unhealthy Indication on relay', 'Relay Display Out',
         'Replay Display Problem', 'HMI Key Defective', 'Clear button of relay defective',
         'O/C E/F Relay Missing'
       ],
-      'Annunciator': ['Annunciator Defective', 'Trip Ckt. Unhealthy Showing'],
+      'Annunciator': ['Annunciator Defective', 'Trip Ckt. Unhealthy Showing', 'Hooter not working'],
       'Panel': [
-        'Front Door not closing properly', 'Rear Cover not closing properly',
-        'Panel Gap', 'Panel Hole', 'TNC Switch Broken', 'TNC Switch Defective',
-        'Breaker ON indication not glowing', 'Dust & Spider', 'Huge Dust & Spider',
-        'Cable Trench Cover Missing', 'Safety Mat near Panel Missing'
+        'Front Door not closing properly', 'Rear Cover not closing properly', 'TNC Switch Broken', 'TNC Switch Defective',
+        'Breaker ON indication not glowing' 
       ]
     };
 
@@ -857,18 +1115,116 @@ function populateOther33() {
     btn.style.marginLeft = '0.5rem';
     btn.style.flex = 'none';
 
+    
+btn.addEventListener('click', () => {
+  const item = itemSelect.value;
+  const panelName = r.cells[1].querySelector('input').value.trim();
+  if (!panelName) return alert('Enter Panel Name first');
+
+  const actionsMap = {
+    'Heater is to be checked': 'Space heaters should be checked.',
+    'Heater Defective': 'Space heater was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of VCB & line spouts from moisture.',
+    'Breaker Chamber Heater Defective': 'Space heater of VCB Chamber was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of VCB & line spouts from moisture.',
+    'Cable Chamber Heater Defective': 'Space heater of Cable/CT Chamber was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of Cable, CT & line spouts from moisture.',
+    '1 no. Heater Defective': 'One no. Space heater was found defective. Hence, heater circuit must be checked and necessary rectification is to be taken for protection of Bus & line spouts from moisture.',
+    '2 nos. Heater Defective': 'Two nos. Space heaters were found defective. Hence, heater circuits must be checked and necessary rectification is to be taken for protection of Bus & line spouts from moisture.',
+    'All Heaters defective': 'All Space heaters were found defective. Hence, heater circuits must be checked and necessary rectification is to be taken for protection of Bus & line spouts from moisture.',
+    'Heater Ckt. Short-Ckt.': 'HD circuits were found as short circuited. Necessary action is to be taken.',
+    'Heater Ammeter Defective': 'Ammeter of the Space heater was found to be defective. Necessary action to be taken to address the same.',
+    'Heater Toggle Switch Defective': 'Heater Toggle Switch was found to be Defective. Necessary action is to be taken.',
+    'Thermostat Problem': 'Problem in thermostat was noticed.  Necessary action is to be taken. Also, Heater thermostat settings must be checked and & it should be in between 40’C to 45’C.',
+    'R-Ph Ammeter Defective': 'R-Phase Ammeter was found to be defective. Necessary action to be taken.',
+    'Y-Ph Ammeter Defective': 'Y-Phase Ammeter was found to be defective. Necessary action to be taken.',
+    'B-Ph Ammeter Defective': 'B-Phase Ammeter was found to be defective. Necessary action to be taken.',
+    'All Ammeters Defective': 'All Phase Ammeters were found to be defective. Necessary action to be taken.',
+    'R-Ph Ammeter Display Problem': 'Display of R-Phase Ammeter was found to be defective. Necessary action is to be taken.',
+    'Y-Ph Ammeter Display Problem': 'Display of Y-Phase Ammeter was found to be defective. Necessary action is to be taken.',
+    'B-Ph Ammeter Display Problem': 'Display of B-Phase Ammeter was found to be defective. Necessary action is to be taken.',
+    'All Ammeters Display Problem': 'Display of All Phase Ammeters were found to be defective. Necessary action is to be taken.',
+    'Voltmeter Defective': 'Display of Voltmeter was found to be defective. Necessary action is to be taken.',
+    'Voltmeter Display Problem': 'Display of Voltmeter was found to be defective. Necessary action is to be taken.',
+    'PT Out of Circuit': 'PT was found to be out of circuit. Necessary action is to be taken.',
+    'PT Missing': 'PT was found to be missing. Necessary action is to be taken.',
+    'Relay Healthy LED not glowing': '"Relay Healthy" LED was not glowing on the O/C E/F Relay. Immediate necessary action is to be taken.',
+    'Trip Ckt. Unhealthy Indication on relay': '"Trip Ckt. Unhealthy" indication was showing on the relay. Immediate necessary action is to be taken.',
+    'Relay Display Out': 'No display was visible on the Relay. Necessary action is to be taken.',
+    'Replay Display Problem': 'Display of the O/C E/F Relay was found to be defective. Necessary action is to be taken.',
+    'HMI Key Defective': 'HMI Key of the O/C E/F Relay was found to be defective. Necessary action is to be taken.',
+    'Clear button of relay defective': 'Clear button of the O/C E/F Relay was found to be defective. Necessary action is to be taken.',
+    'Annunciator Defective': 'Annunciator was found to be defective. Necessary action is to be taken.',
+    'Trip Ckt. Unhealthy Showing': '"Trip Ckt. Unhealthy" indication was showing on the Annunciator. Immediate necessary action is to be taken.',
+    'Hooter Not working':'Hooter was found to be defective. Immediate necessary action is to be taken.',
+    'Front Door not closing properly': 'Front door of the VCB chamber is not closing properly. Immediate necessary action is to be taken.',
+    'Rear Cover not closing properly': 'Rear side cover of the panel is not closing properly. Immediate necessary action is to be taken.',
+    'TNC Switch Broken': 'TNC Switch was found to be Broken. Immediate necessary action is to be taken.',
+    'TNC Switch Defective': 'TNC Switch was found to be defective. Immediate necessary action is to be taken.',
+    'Breaker ON indication not glowing': 'Breaker "ON" indication was not glowing. Immediate necessary action is to be taken.'
+
+
+  };
+
+  const actionText = actionsMap[item];
+  if (!actionText) return;
+
+  const liveRows = [...document.querySelectorAll('#liveTable tbody tr')];
+  const row = liveRows.find(row =>
+  row.getAttribute('data-kv') === '33' &&
+  row.cells[1]?.textContent?.trim() === panelName
+);
+
+
+  if (!row) return alert('Panel not found in Live Table');
+
+  const td = row.querySelector('td:last-child');
+
+// Store the new manual action, then rebuild the live table so it appears
+otherActionsStore['33'][panelName] = otherActionsStore['33'][panelName] || [];
+if (otherActionsStore['33'][panelName].includes(actionText)) {
+  return alert('This action has already been added for this panel.');
+}
+otherActionsStore['33'][panelName].push(actionText);
+populateLiveTable();
+
+
+});
+
+
+
+    // Manual-entry field
     const manualInput = document.createElement('input');
     manualInput.type = 'text';
     manualInput.placeholder = 'Other';
     manualInput.style.marginTop = '0.5rem';
     manualInput.style.width = '70%';
 
+
+    // “Add” button for manual entry
     const btn2 = document.createElement('button');
     btn2.textContent = 'Add';
     btn2.className = 'section-btn';
     btn2.style.marginLeft = '0.5rem';
     btn2.style.fontSize = '0.7rem';
     btn2.style.padding = '4px 6px';
+
+
+    // ── NEW: handle manual “Add” for 33 kV panels ──
+    btn2.addEventListener('click', () => {
+      const text      = manualInput.value.trim();
+      const panelName = r.cells[1].querySelector('input').value.trim();
+      if (!panelName) return alert('Enter Panel Name first');
+      if (!text)      return alert('Enter observation');
+      otherActionsStore['33'][panelName] = otherActionsStore['33'][panelName] || [];
+      if (otherActionsStore['33'][panelName].includes(text)) {
+        return alert('This action has already been added for this panel.');
+      }
+      otherActionsStore['33'][panelName].push(text);
+      manualInput.value = '';
+      populateLiveTable();
+    });
+
+
+
+
 
     const dropdownWrapper = document.createElement('div');
     dropdownWrapper.style.display = 'flex';
@@ -931,18 +1287,21 @@ const otherInit    = { oth11: true, oth33: true };
 
 otherSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    otherSection.querySelectorAll('.sub-tab-btn')
-      .forEach(b => b.classList.remove('active'));
+    // highlight the clicked sub-tab
+    otherSection.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    // show only its pane
+    otherSection.querySelectorAll('.sub-section').forEach(sec => sec.classList.remove('active'));
+    otherSection.querySelector('#' + btn.dataset.sub).classList.add('active');
 
-    otherSection.querySelectorAll('.sub-section')
-      .forEach(sec => sec.classList.remove('active'));
-    otherSection.querySelector('#' + btn.dataset.sub)
-      .classList.add('active');
-
-if (btn.dataset.sub === 'oth11') populateOther11();
-else if (btn.dataset.sub === 'oth33') populateOther33();
-
+    // populate only on first click
+    if (btn.dataset.sub === 'oth11' && otherInit.oth11) {
+      populateOther11();
+      otherInit.oth11 = false;
+    } else if (btn.dataset.sub === 'oth33' && otherInit.oth33) {
+      populateOther33();
+      otherInit.oth33 = false;
+    }
   });
 });
 
@@ -957,6 +1316,10 @@ else if (btn.dataset.sub === 'oth33') populateOther33();
 
   function buildPanelRow(r, is11KV) {
     const tr = document.createElement('tr');
+    tr.setAttribute('data-kv', is11KV ? '11' : '33');
+    // mark panel rows for Word CSS
+    tr.classList.add(is11KV ? 'kv-11' : 'kv-33');
+
     const values = [
       r.index + 1,
       r.cells[1].querySelector('input').value,
@@ -980,7 +1343,15 @@ else if (btn.dataset.sub === 'oth33') populateOther33();
     td.textContent = val ? val : '---';
   } else {
     td.textContent = '---';
+
+
+// ── make all live-table cells editable ──
+document.querySelectorAll('#liveTable tbody td').forEach(td => {
+  td.setAttribute('contenteditable', 'true');
+});
+
   }
+
   tr.appendChild(td);
 });
 
@@ -1078,6 +1449,8 @@ if (usRow) {
   if (s1Val || s2Val) {
     actions.push("Partial Discharge as noted, was found on the side Bus Section of the panel. Thus, maintenance of side bus section is be done.");
   }
+
+
 }
 
 
@@ -1087,13 +1460,20 @@ const toRoman = (num) => {
   return romans[num - 1] || num;
 };
 
-if (actions.length > 0) {
-  // Create multiline effect using <div> inside the cell
-  actionTd.innerHTML = actions.map((txt, idx) => 
-`<div style="font-size:0.6rem; text-align:left;">${toRoman(idx + 1)}. ${txt}</div>`).join('');
+// Merge automated (TEV/Temp/US) + manual (Other) actions
+const kv        = is11KV ? '11' : '33';
+const panelName = r.cells[1].querySelector('input').value.trim();
+
+const manual    = otherActionsStore[kv][panelName] || [];
+const allActions = [...actions, ...manual];
+if (allActions.length > 0) {
+ actionTd.innerHTML = allActions.map((txt, idx) =>
+   `<div style="font-size:0.6rem; text-align:left;"><b>${toRoman(idx+1)}.</b> ${txt}</div>`
+ ).join('');
 } else {
   actionTd.textContent = '';
 }
+
 
 tr.appendChild(actionTd);
 
@@ -1103,6 +1483,7 @@ tr.appendChild(actionTd);
   }
 
   const header11 = document.createElement('tr');
+  header11.classList.add('kv-header'); 
   const td11 = document.createElement('td');
   td11.colSpan = COL_COUNT;
   td11.textContent = '11KV Panels';
@@ -1119,6 +1500,7 @@ tr.appendChild(actionTd);
   const rows33 = table33Body.querySelectorAll('tr');
   if (rows33.length) {
     const header33 = document.createElement('tr');
+    header33.classList.add('kv-header');  
     const td33 = document.createElement('td');
     td33.colSpan = COL_COUNT;
     td33.textContent = '33KV Panels';
@@ -1141,10 +1523,6 @@ tr.appendChild(actionTd);
     table33Body.addEventListener(evt, populateLiveTable);
   });
 
-['input','change'].forEach(evt => {
-  table11Body.addEventListener(evt, populateOther11);
-  table33Body.addEventListener(evt, populateOther33);
-});
 
 
 // fire on any change in your Temperature tables:
@@ -1176,11 +1554,581 @@ populateTEV33();
 populateTemp11();
 populateTemp33();
 
+
+// ── 33KV CRP Observations UI wiring ──
+const crpPTRSelect       = document.getElementById('crpPTRSelect');
+const crpPTROther        = document.getElementById('crpPTROther');
+const crpDeviceTypeSelect= document.getElementById('crpDeviceTypeSelect');
+const crpIssueSelect     = document.getElementById('crpIssueSelect');
+
+// Show/hide the "Other PTR" field
+crpPTRSelect.addEventListener('change', () => {
+  if (crpPTRSelect.value === 'Other') {
+    crpPTROther.style.display = 'block';
+  } else {
+    crpPTROther.style.display = 'none';
+    crpPTROther.value = '';
+  }
+});
+
+// Build the issue-list based on device type
+const crpIssueOptions = {
+  'Phase Ammeter': [
+    'R-Ph Ammeter Defective', 'Y-Ph Ammeter Defective',
+    'B-Ph Ammeter Defective','All Ammeters Defective',
+    'R-Ph Ammeter Display Problem','Y-Ph Ammeter Display Problem',
+    'B-Ph Ammeter Display Problem','All Ammeters Display Problem'
+  ],
+  'Voltmeter': ['Voltmeter Defective','Voltmeter Display Problem'],
+  'Relay': [
+    'Diffrential Relay Healthy LED not glowing','O/C E/F Relay Healthy LED not gowing',
+    'Trip Ckt. Unhealthy Indication on relay',
+    'Differential Relay Display Out', 'O/C E/F Relay Display Out', 'Differential Relay Display Problem', 'O/C E/F Relay Display Problem',
+    'Differential Relay HMI Key Defective','O/C E/F Relay HMI Key Defective','Clear button of Differential Relay defective','Clear button of O/C E/F Relay defective',
+    'O/C E/F Relay Missing'
+  ],
+  'Annunciator': ['Annunciator Defective','Trip Ckt. Unhealthy Showing','Hooter not working'],
+  'Panel': ['TNC Switch Broken','TNC Switch Defective','Breaker ON indication not glowing']
+};
+
+crpDeviceTypeSelect.addEventListener('change', () => {
+  crpIssueSelect.innerHTML = '<option value="" disabled selected hidden></option>';
+  (crpIssueOptions[crpDeviceTypeSelect.value]||[])
+    .forEach(text => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = text;
+      crpIssueSelect.appendChild(opt);
+    });
+});
+
+// ── 33KV CRP Observations UI wiring ──
+// Show/hide the "Other PTR" field (unchanged)
+crpPTRSelect.addEventListener('change', () => {
+  if (crpPTRSelect.value === 'Other') {
+    crpPTROther.style.display = 'block';
+  } else {
+    crpPTROther.style.display = 'none';
+    crpPTROther.value = '';
+  }
+});
+
+// Handler for the CRP “Add” button: map each issue to the exact action text
+document.getElementById('addCRPBtn').addEventListener('click', () => {
+  const ptr   = crpPTRSelect.value === 'Other'
+                ? crpPTROther.value.trim()
+                : crpPTRSelect.value;
+  const issue = crpIssueSelect.value;
+  if (!ptr)   return alert('Select or enter PTR');
+  if (!issue) return alert('Select issue');
+
+  let actionText = '';
+  switch (issue) {
+// Ammeter    
+    case 'R-Ph Ammeter Defective':
+      actionText = `R-Ph Ammeter was found to be defective of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+    case 'Y-Ph Ammeter Defective':
+      actionText = `Y-Ph Ammeter was found to be defective of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+    case 'B-Ph Ammeter Defective':
+      actionText = `B-Ph Ammeter was found to be defective of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+    case 'All Ammeters Defective':
+      actionText = `All Ammeters were found to be defective of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+    case 'R-Ph Ammeter Display Problem':
+      actionText = `Display Problem was noticed on the R-Ph Ammeter of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+    case 'Y-Ph Ammeter Display Problem':
+      actionText = `Display Problem was noticed on the Y-Ph Ammeter of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+    case 'B-Ph Ammeter Display Problem':
+      actionText = `Display Problem was noticed on the B-Ph Ammeter of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+    case 'All Ammeters Display Problem':
+      actionText = `Display Problem was noticed on all the ammeters of the ${ptr} CRP. Necessary action is to be taken.`;
+      break;
+// Voltmeter
+  case 'Voltmeter Defective':
+    actionText = `Voltmeter was found to be defective of the ${ptr} CRP. Necessary action is to be taken.`;
+    break;
+  case 'Voltmeter Display Problem':
+    actionText = `Display Problem was noticed on the Voltmeter of the ${ptr} CRP. Necessary action is to be taken.`;
+    break;
+
+  // Relay LEDs & Display
+  case 'Differential Relay Healthy LED not glowing':
+    actionText = `"Relay Healthy" LED of the Differential Relay is not glowing on the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+  case 'O/C E/F Relay Healthy LED not glowing':
+    actionText = `"Relay Healthy" LED of the O/C E/F Relay is not glowing on the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+  case 'Trip Ckt. Unhealthy Indication on relay':
+    actionText = `"Trip Ckt. Unhealthy" indication was glowing on the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+  case 'Differential Relay Display Out':
+    actionText = `No display was visible on the Differential Relay of the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+  case 'O/C E/F Relay Display Out':
+    actionText = `No display was visible on the O/C E/F Relay of the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+  case 'Differential Relay Display Problem':
+    actionText = `Problem in the display of Differential Relay of the ${ptr} CRP was observed. Immediate necessary action is to be taken.`;
+    break;
+  case 'O/C E/F Relay Display Problem':
+    actionText = `Problem in the display of O/C E/F Relay of the ${ptr} CRP was observed. Immediate necessary action is to be taken.`;
+    break;
+
+  // HMI Keys & Clear buttons
+  case 'Differential Relay HMI Key Defective':
+    actionText = `Problem in the HMI Keys of Differential Relay of the ${ptr} CRP was observed. Immediate necessary action is to be taken.`;
+    break;
+  case 'O/C E/F Relay HMI Key Defective':
+    actionText = `Problem in the HMI Keys of O/C E/F Relay of the ${ptr} CRP was observed. Immediate necessary action is to be taken.`;
+    break;
+  case 'Clear button of Differential Relay defective':
+    actionText = `Problem in the Clear Button of Differential Relay of the ${ptr} CRP was observed. Immediate necessary action is to be taken.`;
+    break;
+  case 'Clear button of O/C E/F Relay defective':
+    actionText = `Problem in the Clear Button of O/C E/F Relay of the ${ptr} CRP was observed. Immediate necessary action is to be taken.`;
+    break;
+
+  // Missing relay
+  case 'O/C E/F Relay Missing':
+    actionText = `O/C E/F Relay was found to be missing on the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+
+// Annunciator
+  case 'Annunciator Defective':
+    actionText = `Annunciator was found to be defective of the ${ptr} CRP. Necessary action is to be taken.`;
+    break;
+  case 'Trip Ckt. Unhealthy Showing':
+    actionText = `"Trip Ckt. Unhealthy" was showing on Annunciator of the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+  case 'Hooter not working':
+    actionText = `Hooter of the ${ptr} CRP was not working. Immediate necessary action is to be taken.`;
+    break;
+
+// Panel
+  case 'TNC Switch Broken':
+    actionText = `TNC Switch of the ${ptr} CRP was found to be broken. Immediate necessary action is to be taken.`;
+    break;
+  case 'TNC Switch Defective':
+    actionText = `TNC Switch of the ${ptr} CRP was found to be defective. Immediate necessary action is to be taken.`;
+    break;
+  case '"Breaker ON" indication not glowing':
+    actionText = `"Breaker ON indication was not glowing of the ${ptr} CRP. Immediate necessary action is to be taken.`;
+    break;
+
+    default:
+      return alert('Unsupported CRP issue selected.');
+  }
+
+  // store and refresh
+  otherActionsStore['CRP'] = otherActionsStore['CRP'] || [];
+  if (otherActionsStore['CRP'].includes(actionText)) {
+    return alert('This observation has already been added.');
+  }
+  otherActionsStore['CRP'].push(actionText);
+  populateLiveTable();
+});
+
+
+// Handler for manual-entry “Add” button under CRP
+document.getElementById('addCRPManualBtn').addEventListener('click', () => {
+  const text = document.getElementById('crpManualInput').value.trim();
+  if (!text) return alert('Enter observation');
+  otherActionsStore['CRP'] = otherActionsStore['CRP'] || [];
+  if (otherActionsStore['CRP'].includes(text)) {
+    return alert('This observation has already been added.');
+  }
+  otherActionsStore['CRP'].push(text);
+  document.getElementById('crpManualInput').value = '';
+  populateLiveTable();
+});
+
+
+// ── Panel Room Observations UI wiring ──
+const panelRoomMap = {
+  '11KV Panel Gap': 'Back cover gap have been found for some of the 11KV panels. Necessary action to be taken towards closing the gaps properly to avoid unwanted interruptions and flashovers due to foreign particles, rats and lizards etc.',
+  '33KV Panel Gap': 'Back cover gap have been found for some of the 33KV panels. Necessary action to be taken towards closing the gaps properly to avoid unwanted interruptions and flashovers due to foreign particles, rats and lizards etc.',
+  '11KV Panel Hole': 'Necessary action to be taken towards closing the 11KV Panel holes properly to avoid unwanted interruptions and flashovers due to foreign particles, rats and lizards etc.',
+  '33KV Panel Hole': 'Necessary action to be taken towards closing the 33KV Panel holes properly to avoid unwanted interruptions and flashovers due to foreign particles, rats and lizards etc.',
+  '11KV Panels Dust & Spider': 'Dust and spider web deposited on 11KV panel surface must be cleaned thoroughly to prevent entry of dust inside panel through openings as this may increase leakage current & thereby affecting insulation.',
+  '33KV Panels Dust & Spider': 'Dust and spider web deposited on 33KV panel surface must be cleaned thoroughly to prevent entry of dust inside panel through openings as this may increase leakage current & thereby affecting insulation.',
+  '11KV Panels Huge Dust & Spider': '<b>Huge Dust and spider web</b> deposited on 11KV panel surface must be cleaned thoroughly to prevent entry of dust inside panel through openings as this may increase leakage current & thereby affecting insulation.',
+  '33KV Panels Huge Dust & Spider': '<b>Huge Dust and spider web</b> deposited on 33KV panel surface must be cleaned thoroughly to prevent entry of dust inside panel through openings as this may increase leakage current & thereby affecting insulation.',
+  'Safety Mat near 11KV Panel Missing': 'Safety Mat near 11KV Panels was found missing. Immediate necessary action is to be taken for safety concern.',
+  'Safety Mat near 33KV Panel Missing': 'Safety Mat near 33KV Panels was found missing. Immediate necessary action is to be taken for safety concern.',
+  'Cable Trench Cover Missing': 'Cable Trench Cover was found missing in some of the places. Immediate necessary action is to be taken.'
+};
+
+// Listen for checkbox changes under the “Panel Room” tab
+document.querySelectorAll('#othRoom input[type="checkbox"][name="panelRoomObs"]')
+  .forEach(cb => {
+    cb.addEventListener('change', () => {
+      const action = panelRoomMap[cb.value];
+      otherActionsStore['Panel Room'] = otherActionsStore['Panel Room'] || [];
+      if (cb.checked) {
+        if (!otherActionsStore['Panel Room'].includes(action)) {
+          otherActionsStore['Panel Room'].push(action);
+        }
+      } else {
+        otherActionsStore['Panel Room'] =
+          otherActionsStore['Panel Room'].filter(a => a !== action);
+      }
+      populateLiveTable();
+    });
+  });
+
+// Handle manual “Other” entries in Panel Room
+document.getElementById('addRoomManualBtn').addEventListener('click', () => {
+  const text = document.getElementById('roomManualInput').value.trim();
+  if (!text) return alert('Enter observation');
+  otherActionsStore['Panel Room'] = otherActionsStore['Panel Room'] || [];
+  if (!otherActionsStore['Panel Room'].includes(text)) {
+    otherActionsStore['Panel Room'].push(text);
+    document.getElementById('roomManualInput').value = '';
+    populateLiveTable();
+  } else {
+    alert('This observation has already been added.');
+  }
+});
+
+
+
+
+
+
+ // ── Inject all “Other” sections under one unified Observations header ──
+ const _origPopulate = populateLiveTable;
+ populateLiveTable = function() {
+   _origPopulate();
+   const COL_COUNT = 20;
+   const liveTbody = document.querySelector('#liveTable tbody');
+
+   // gather all four lists
+   const batObs   = otherActionsStore['Battery & Battery Charger'] || [];
+   const crpObs   = otherActionsStore['CRP'] || [];
+   const rtccObs  = otherActionsStore['RTCC'] || [];
+   const panelObs = otherActionsStore['Panel Room'] || [];
+
+   // only proceed if *any* list has entries
+   if (batObs.length || crpObs.length || rtccObs.length || panelObs.length) {
+    // Observations header row
+    const hdr = document.createElement('tr');
+    hdr.classList.add('obs-header');
+     const tdh = document.createElement('td');
+     tdh.colSpan     = COL_COUNT;
+     tdh.textContent = 'Observations of Battery & Battery Charger/33KV CRP/RTCC Panels/Other General Observations';
+     tdh.style.fontWeight = 'bold';
+     tdh.style.textAlign  = 'center';
+     hdr.appendChild(tdh);
+     liveTbody.appendChild(hdr);
+
+     let counter = 1;
+
+
+      // helper to render a block with merged location column
+      function renderBlock(arr, locText, sectionKey) {
+        if (arr.length === 0) return;
+        let firstRow = true;
+        arr.forEach(txt => {
+          const tr = document.createElement('tr');
+          // tag this block’s rows so we can colour-code them
+          tr.classList.add(sectionKey);
+          // 1) Serial number
+          const td0 = document.createElement('td');
+          td0.textContent = counter++;
+          tr.appendChild(td0);
+          // 2) Location (merged only once)
+          if (firstRow) {
+            const td1 = document.createElement('td');
+            td1.textContent = locText;
+            td1.rowSpan = arr.length;
+            td1.style.fontWeight = 'bold';
+            td1.style.textAlign    = 'center';
+            tr.appendChild(td1);
+            firstRow = false;
+          }
+          // 3) Action cell spanning all right-hand columns
+          const tdA = document.createElement('td');
+          tdA.colSpan = COL_COUNT - 2; // span everything except Sl.No. + Location
+          tdA.innerHTML = `<div style="font-size:0.6rem; text-align:left;">${txt}</div>`;
+          tr.appendChild(tdA);
+          liveTbody.appendChild(tr);
+        });
+      }
+
+     // render in desired order
+      renderBlock(batObs,   'Battery & Battery Charger', 'bat');
+      renderBlock(crpObs,   '33KV CRP',                'crp');
+      renderBlock(rtccObs,  'RTCC Panels',             'rtcc');
+      renderBlock(panelObs, 'Panels & Panel Room',     'proom');
+
+   }
+
+  // ── make all live-table cells editable ──
+  document.querySelectorAll('#liveTable td').forEach(td => {
+    td.setAttribute('contenteditable', 'true');
+  });
+};
+
+
+
+
+// ── RTCC Panels UI wiring ──
+const rtccSelect       = document.getElementById('rtccSelect');
+const rtccOtherInput   = document.getElementById('rtccOtherInput');
+const rtccIssueSelect  = document.getElementById('rtccIssueSelect');
+const addRTCCBtn       = document.getElementById('addRTCCBtn');
+const addRTCCManualBtn = document.getElementById('addRTCCManualBtn');
+
+// Show/hide “Other” text for first dropdown
+rtccSelect.addEventListener('change', () => {
+  if (rtccSelect.value === 'Other') {
+    rtccOtherInput.style.display = 'block';
+  } else {
+    rtccOtherInput.style.display = 'none';
+    rtccOtherInput.value = '';
+  }
+});
+
+// Handler for dropdown-based Add
+ addRTCCBtn.addEventListener('click', () => {
+   const rtcc = rtccSelect.value === 'Other'
+              ? rtccOtherInput.value.trim()
+              : rtccSelect.value;
+   const issue = rtccIssueSelect.value;
+   if (!rtcc)   return alert('Select or enter RTCC');
+   if (!issue)  return alert('Select issue');
+
+   let actionText = '';
+   switch (issue) {
+     case 'Tap Changing Indicator Defective':
+       actionText = `Tap changing indicator of the ${rtcc} was found to be defective. Necessary action is to be taken.`;
+       break;
+     case 'ROTI Open':
+       actionText = `ROTI of the ${rtcc} was found to be OPEN. Necessary action is to be taken.`;
+       break;
+     case 'RWTI Open':
+       actionText = `RWTI of the ${rtcc} was found to be OPEN. Necessary action is to be taken.`;
+       break;
+     case 'ROTI Display Defective':
+       actionText = `Display of ROTI of the ${rtcc} was found to be defective. Necessary action is to be taken.`;
+       break;
+     case 'RWTI Display Defective':
+       actionText = `Display of RWTI of the ${rtcc} was found to be defective. Necessary action is to be taken.`;
+       break;
+     case 'RTCC Disconnected':
+       actionText = `${rtcc} was found to be disconnected. Necessary action is to be taken.`;
+       break;
+     default:
+       // fallback (should not happen)
+       actionText = `${rtcc}: ${issue}.`;
+   }
+
+   otherActionsStore['RTCC'] = otherActionsStore['RTCC'] || [];
+   if (otherActionsStore['RTCC'].includes(actionText)) {
+     return alert('This observation has already been added.');
+   }
+   otherActionsStore['RTCC'].push(actionText);
+   populateLiveTable();
+ });
+
+
+// Handler for manual-entry Add
+addRTCCManualBtn.addEventListener('click', () => {
+  const text = document.getElementById('rtccManualInput').value.trim();
+  if (!text) return alert('Enter observation');
+  otherActionsStore['RTCC'] = otherActionsStore['RTCC'] || [];
+  if (otherActionsStore['RTCC'].includes(text)) {
+    return alert('This observation has already been added.');
+  }
+  otherActionsStore['RTCC'].push(text);
+  document.getElementById('rtccManualInput').value = '';
+  populateLiveTable();
+});
+
+// Inject RTCC lines into the live table
+const _basePopulate = populateLiveTable;
+populateLiveTable = function() {
+  _basePopulate();
+  const COL_COUNT = 20;
+  const liveTbody  = document.querySelector('#liveTable tbody');
+  const rtccObs    = otherActionsStore['RTCC'] || [];
+  
+};
+
+
+
+
+
 // now build the live table
 populateLiveTable();
+
+// ── Re-bind all live-sync events to the wrapped populateLiveTable ──
+[
+  '#table11 tbody',
+  '#table33 tbody',
+  '#tableTemp11 tbody',
+  '#tableTemp33 tbody',
+  '#tableUltrasound11 tbody',
+  '#tableUltrasound33 tbody',
+  '#tableTEV11 tbody',
+  '#tableTEV33 tbody'
+].forEach(selector => {
+  const el = document.querySelector(selector);
+  ['input','change'].forEach(evt => {
+    el.addEventListener(evt, populateLiveTable);
+  });
+});
+
+  // ── Download Live Table as .docx ──
+document.getElementById('downloadDocBtn').addEventListener('click', () => {
+  const content = document.getElementById('liveTableContainer').innerHTML;
+  const fullHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+       <style>
+       /* A4 Landscape, 1 cm margins */
+       @page { size: A4 landscape; margin: 1cm; }
+      /* “No Spacing” style for all table text (including divs) */
+        body, p, th, td, div {
+           margin: 0;
+           padding: 0;
+           font-family: Cambria;
+           line-height: 1;
+           mso-style-name: "No Spacing";
+          }
+   table {
+     width: 100%;
+     border-collapse: collapse;
+   }
+
+   th, td {
+     border: 1px solid #000;
+     padding: 5px;
+   }
+
+   /* Column headers */
+   th {
+     background-color: #d9d9d9;
+     font-size: 11pt;
+   }
+
+   /* All other cells */
+   td {
+     font-size: 11pt;
+   }
+
+   /* “Action to be Taken” is last column */
+   td:last-child {
+     font-size: 9pt;
+   }
+
+       /* 11KV & 33KV panels data rows */
+       tr.kv-11 td,
+       tr.kv-33 td {
+       background-color: #dbe5f1 !important;
+       }
+
+   /* Group‐header rows for 11KV/33KV Panels */
+   tr.kv-header td {
+     background-color: #dbe5f1;
+   }
+
+   /* Observations header row */
+   tr.obs-header td {
+     background-color: #d9d9d9;
+   }
+
+   /* Observation-block rows */
+   tr.bat   td { background-color: #f2dcdc !important; }
+   tr.crp   td { background-color: #ebf1de !important; }
+   tr.rtcc  td { background-color: #fdeada !important; }
+   tr.proom td { background-color: #fff2cc !important; }
+ </style>
+      </head>
+      <body>${content}</body>
+    </html>`;
+  const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+    // Dynamically name as SubstationName_DD.MM.YYYY.doc
+    const sub = localStorage.getItem('selectedSubstation') || 'Substation';
+    const now = new Date();
+    const dd  = String(now.getDate()).padStart(2,'0');
+    const mm  = String(now.getMonth()+1).padStart(2,'0');
+    const yyyy= now.getFullYear();
+    saveAs(blob, `${sub}_${dd}.${mm}.${yyyy}.doc`);
+   });
+
+  // ── Download Live Table as .pdf ──
+document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+  // 1. Build filename
+  const sub = localStorage.getItem('selectedSubstation') || 'Substation';
+  const now = new Date();
+  const dd  = String(now.getDate()).padStart(2,'0');
+  const mm  = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy= now.getFullYear();
+  const filename = `${sub}_${dd}.${mm}.${yyyy}.pdf`;
+
+  // 2. Force black text on the container
+  const element = document.getElementById('liveTableContainer');
+  element.classList.add('pdf-black');
+
+// 3. Inject the Word-style CSS for tables into <head>
+const pdfStyle = document.createElement('style');
+pdfStyle.id = 'pdf-export-style';
+pdfStyle.textContent = `
+  @page { size: A4 landscape; margin: 1cm; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 5px;
+    font-family: Cambria;
+    font-size: 11pt;
+    color: #000 !important;
+  }
+  th { background-color: #d9d9d9 !important; }
+  /* 11KV & 33KV panel rows */
+  tr.kv-11 td,
+  tr.kv-33 td,
+  tr.kv-header td { background-color: #dbe5f1 !important; }
+  tr.obs-header td { background-color: #d9d9d9 !important; }
+  tr.bat   td { background-color: #f2dcdc !important; }
+  tr.crp   td { background-color: #ebf1de !important; }
+  tr.rtcc  td { background-color: #fdeada !important; }
+  tr.proom td { background-color: #fff2cc !important; }
+`;
+document.head.appendChild(pdfStyle);
+
+
+  // 4. Run html2pdf() with your desired options and save
+  html2pdf().set({
+    margin:       [0.5,0.5,0.5,0.5],
+    filename,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+  })
+  .from(element)
+  .save()
+  .finally(() => {
+    // 5. Clean up: remove injected CSS and class
+    element.classList.remove('pdf-black');
+    document.head.removeChild(pdfStyle);
+  });
+});
+
 
 
 
 
 });
+
 
