@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+	<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -840,6 +840,44 @@ h2.compact-live-heading {
   transition: box-shadow 0.3s ease;
 }
 
+
+/* ── Style RTCC Panels dropdowns & manual-entry fields ── */
+#othRTCC select,
+#othRTCC input[type="text"] {
+  background:     #0a0f2c;
+  color:          #fff;
+  border:         2px solid #00f2ff;
+  border-radius:  6px;
+  padding:        6px 8px;
+  font-family:    'Orbitron', sans-serif;
+  box-shadow:     inset 0 0 8px #00f2ff;
+  transition:     box-shadow 0.3s ease;
+}
+#othRTCC select:focus,
+#othRTCC input[type="text"]:focus {
+  outline:        none;
+  box-shadow:     0 0 12px #00f2ff;
+}
+
+/* ── Style RTCC “Add” buttons ── */
+#othRTCC button.section-btn {
+  background-color: #111836;
+  color:            #00f2ff;
+  border:           2px solid #00f2ff;
+  border-radius:    6px;
+  padding:          6px 12px;
+  font-size:        0.8rem;
+  margin-top:       0;
+  box-shadow:       0 0 10px #00f2ff;
+  transition:       all 0.3s ease;
+}
+#othRTCC button.section-btn:hover {
+  background-color: #00f2ff;
+  color:            #000;
+  transform:        scale(1.05);
+}
+
+
 #tableOther11 select:focus,
 #tableOther33 select:focus,
 #tableOther11 input[type="text"]:focus,
@@ -870,6 +908,100 @@ h2.compact-live-heading {
   transform: scale(1.05);
 }
 
+#othCRP select,
+#othCRP input[type="text"] {
+  background:     #0a0f2c;
+  color:          #fff;
+  border:         2px solid #00f2ff;
+  border-radius:  6px;
+  padding:        6px 8px;
+  font-family:   'Orbitron', sans-serif;
+  box-shadow:    inset 0 0 8px #00f2ff;
+  transition:    box-shadow 0.3s ease;
+}
+#othCRP select:focus,
+#othCRP input[type="text"]:focus {
+  outline:       none;
+  box-shadow:    0 0 12px #00f2ff;
+}
+
+
+/* Make the CRP “Add” button match other section-btns */
+#othCRP button.section-btn {
+  background-color: #111836;
+  color:           #00f2ff;
+  border:          2px solid #00f2ff;
+  border-radius:   6px;
+  padding:         6px 12px;
+  font-size:       0.8rem;
+  box-shadow:      0 0 10px #00f2ff;
+  transition:      all 0.3s ease;
+  margin-top:      0;    /* align with input */
+}
+#othCRP button.section-btn:hover {
+  background-color: #00f2ff;
+  color:            #000;
+  transform:        scale(1.05);
+}
+
+
+/* ── Panel Room styling ── */
+#othRoom input[type="text"],
+#othRoom input[type="checkbox"],
+#othRoom label {
+  font-family: 'Orbitron', sans-serif;
+  color: #fff;
+}
+
+#othRoom input[type="text"] {
+  background: #0a0f2c;
+  border: 2px solid #00f2ff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  box-shadow: inset 0 0 8px #00f2ff;
+  transition: box-shadow 0.3s ease;
+}
+
+#othRoom input[type="text"]:focus {
+  outline: none;
+  box-shadow: 0 0 12px #00f2ff;
+}
+
+#othRoom label {
+  display: inline-block;
+  margin: 0.2rem 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+
+
+#othRoom button.section-btn:hover {
+  background-color: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+
+/* ── Panel Room “Add” button styling ── */
+#othRoom button.section-btn {
+  background-color: #111836;
+  color:            #00f2ff;
+  border:           2px solid #00f2ff;
+  border-radius:    6px;
+  padding:          6px 12px;
+  font-size:        0.8rem;
+  box-shadow:       0 0 10px #00f2ff;
+  transition:       all 0.3s ease;
+  margin-top:       0; /* keeps it aligned with the input */
+}
+#othRoom button.section-btn:hover {
+  background-color: #00f2ff;
+  color:            #000;
+  transform:        scale(1.05);
+}
 
 
   </style>
@@ -926,8 +1058,34 @@ h2.compact-live-heading {
 }
 
 
+/* Style the Back button just like your main buttons */
+.action-buttons .section-btn {
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background-color: #111836;
+  color: #00f2ff;
+  cursor: pointer;
+  box-shadow: 0 0 15px #00f2ff;
+  transition: all 0.3s ease;
+}
+.action-buttons .section-btn:hover {
+  background-color: #00f2ff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+
+
 </style>
 
+<style>
+  /* Ensure all text in the table prints black in the PDF */
+  .pdf-black, .pdf-black * {
+    color: #000 !important;
+  }
+</style>
 
 
 </head>
@@ -1384,9 +1542,60 @@ h2.compact-live-heading {
                    placeholder="Voltage" />
           </td>
         </tr>
+
+<tr>
+  <td style="text-align:center; padding-top:0.5rem;">
+    <label style="display:inline-flex; align-items:center;font-family:'Orbitron',sans-serif; color:#fff;">
+      <input
+        type="checkbox"
+        id="bat11VoltageOnProblem"
+        name="bat11VoltageOnProblem"
+        style="margin-right:0.5rem;"
+      />
+      Problem
+    </label>
+  </td>
+  <td style="text-align:center; padding-top:0.5rem;">
+    <label style="display:inline-flex; align-items:center;font-family:'Orbitron',sans-serif; color:#fff;">
+      <input
+        type="checkbox"
+        id="bat11VoltageOffProblem"
+        name="bat11VoltageOffProblem"
+        style="margin-right:0.5rem;"
+      />
+      Problem
+    </label>
+  </td>
+</tr>
+
+
+
       </tbody>
     </table>
   </div>
+
+  <!-- c) Battery Cell Voltage -->
+  <div style="margin-top:1.5rem; display:flex; justify-content:center; align-items:center; gap:0.5rem;">
+    <label for="bat11CellVoltage"
+           style="font-weight:bold; margin-right:0.5rem; color:#00f2ff;">
+      Battery Cell Voltage (in V)
+    </label>
+    <input id="bat11CellVoltage"
+           type="number"
+           placeholder="Voltage"
+           style="width:90px;
+                  background:#0a0f2c;
+                  color:#fff;
+                  border:2px solid #00f2ff;
+                  border-radius:6px;
+                  padding:6px 8px;
+                  font-family:'Orbitron',sans-serif;
+                  box-shadow: inset 0 0 8px #00f2ff;" />
+  </div>
+
+
+
+
 
   <!-- b) General Findings -->
   <div style="margin-top:1.5rem;">
@@ -1401,8 +1610,9 @@ h2.compact-live-heading {
       <label><input type="checkbox" name="bat11GenFindings" value="Top Cover Broken" /> Top Cover Broken</label>
       <label><input type="checkbox" name="bat11GenFindings" value="Earth Fault" /> Earth Fault</label>
       <label><input type="checkbox" name="bat11GenFindings" value="Rating Mismatch" /> Rating Mismatch</label>
-      <label><input type="checkbox" name="bat11GenFindings" value="Some Batteries Defective" />
-        Some Batteries Defective</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Some Batteries Defective" /> Some Batteries Defective</label>
+      <label><input type="checkbox" name="bat11GenFindings" value="Exhaust Fan" /> Exhaust Fan</label>  
+      <label><input type="checkbox" name="bat11GenFindings" value="Charger Rating Mismatch" /> Charger Rating Mismatch</label>     
     </div>
     <div style="margin-top:0.75rem; display:flex; align-items:center; gap:0.5rem;">
       <input id="bat11GenFindingsOther"
@@ -1449,9 +1659,58 @@ h2.compact-live-heading {
                    placeholder="Voltage" />
           </td>
         </tr>
+
+<tr>
+  <td style="text-align:center; padding-top:0.5rem;">
+    <label style="display:inline-flex; align-items:center;font-family:'Orbitron',sans-serif; color:#fff;">
+      <input
+        type="checkbox"
+        id="bat33VoltageOnProblem"
+        name="bat33VoltageOnProblem"
+        style="margin-right:0.5rem;"
+      />
+      Problem
+    </label>
+  </td>
+  <td style="text-align:center; padding-top:0.5rem;">
+    <label style="display:inline-flex; align-items:center;font-family:'Orbitron',sans-serif; color:#fff;">
+      <input
+        type="checkbox"
+        id="bat33VoltageOffProblem"
+        name="bat33VoltageOffProblem"
+        style="margin-right:0.5rem;"
+      />
+      Problem
+    </label>
+  </td>
+</tr>
+
+
       </tbody>
     </table>
   </div>
+
+
+  <!-- c) Battery Cell Voltage -->
+  <div style="margin-top:1.5rem; display:flex; justify-content:center; align-items:center; gap:0.5rem;">
+    <label for="bat33CellVoltage"
+           style="font-weight:bold; margin-right:0.5rem; color:#00f2ff;">
+      Battery Cell Voltage (in V)
+    </label>
+    <input id="bat33CellVoltage"
+           type="number"
+           placeholder="Voltage"
+           style="width:90px;
+                  background:#0a0f2c;
+                  color:#fff;
+                  border:2px solid #00f2ff;
+                  border-radius:6px;
+                  padding:6px 8px;
+                  font-family:'Orbitron',sans-serif;
+                  box-shadow: inset 0 0 8px #00f2ff;" />
+  </div>
+
+
 
   <div style="margin-top:1.5rem;">
     <p style="font-weight:bold; margin-bottom:0.5rem;">General Findings</p>
@@ -1465,8 +1724,10 @@ h2.compact-live-heading {
       <label><input type="checkbox" name="bat33GenFindings" value="Top Cover Broken" /> Top Cover Broken</label>
       <label><input type="checkbox" name="bat33GenFindings" value="Earth Fault" /> Earth Fault</label>
       <label><input type="checkbox" name="bat33GenFindings" value="Rating Mismatch" /> Rating Mismatch</label>
-      <label><input type="checkbox" name="bat33GenFindings" value="Some Batteries Defective" />
-        Some Batteries Defective</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Some Batteries Defective" />Some Batteries Defective</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Exhaust Fan" />Exhaust Fan</label>
+      <label><input type="checkbox" name="bat33GenFindings" value="Charger Rating Mismatch" />Charger Rating Mismatch</label>
+        
     </div>
     <div style="margin-top:0.75rem; display:flex; align-items:center; gap:0.5rem;">
       <input id="bat33GenFindingsOther"
@@ -1496,6 +1757,9 @@ h2.compact-live-heading {
   <div class="sub-tab-container">
     <button class="sub-tab-btn" data-sub="oth11">11KV Panels</button>
     <button class="sub-tab-btn" data-sub="oth33">33KV Panels</button>
+    <button class="sub-tab-btn" data-sub="othCRP">33KV CRP</button>
+    <button class="sub-tab-btn" data-sub="othRTCC">RTCC Panels</button>
+    <button class="sub-tab-btn" data-sub="othRoom">Panel Room</button>
   </div>
 
 <div id="oth11" class="sub-section">
@@ -1537,27 +1801,182 @@ h2.compact-live-heading {
 
 
 
-  <div id="others" class="sub-section">
- <div class="table-container" style="font-size:0.7rem;">
-   <table id="tableOther33" style="table-layout: fixed; width: 100%;">
-        <thead>
-          <tr>
-          <th style="width:5%;">Sl. No.</th>
-          <th style="width:15%;">33KV Panel Name</th>
-          <th style="width:80%;">Observations</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+  <div id="othCRP" class="sub-section">
+    <!-- CRP Observation Form -->
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;justify-content:center;">
+      <select id="crpPTRSelect">
+        <option value="" disabled selected hidden></option>
+        <option>PTR-1</option>
+        <option>PTR-2</option>
+        <option>PTR-3</option>
+        <option>PTR-4</option>
+        <option>PTR-5</option>
+        <option>PTR-6</option>
+        <option>PTR-7</option>
+        <option>Other</option>
+      </select>
+      <input type="text"
+             id="crpPTROther"
+             placeholder="Other PTR"
+             style="display:none;"
+      />
+      <select id="crpDeviceTypeSelect">
+        <option value="" disabled selected hidden></option>
+        <option>Phase Ammeter</option>
+        <option>Voltmeter</option>
+        <option>Relay</option>
+        <option>Annunciator</option>
+        <option>Panel</option>
+      </select>
+      <select id="crpIssueSelect">
+        <option value="" disabled selected hidden></option>
+      </select>
+      <button id="addCRPBtn" class="section-btn" style="margin-left:0.5rem;">
+        Add
+      </button>
     </div>
-    <div class="action-buttons" style="margin-top:1rem; display:flex; justify-content:center; gap:1rem;">
-      <button id="saveOther33" class="section-btn">Save</button>
+<div style="
+    margin-top:0.5rem;
+    display: flex;
+    justify-content: center;    /* <-- center the row */
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    max-width: 600px;           /* optional: constrain width */
+    margin-left: auto;          /* center container */
+    margin-right: auto;
+  ">
+  <input
+    type="text"
+    id="crpManualInput"
+    placeholder="Other Observation"
+    style="flex: 1;"          /* <-- let it grow to fill space */
+  />
+  <button id="addCRPManualBtn" class="section-btn">Add</button>
+</div>
+
+  </div>
+
+
+
+  <!-- RTCC Panels Sub-tab -->
+  <div id="othRTCC" class="sub-section" style="padding:0.5rem;">
+  <div id="rtccForm" style="display:flex; justify-content:center; flex-wrap:wrap; gap:0.5rem; align-items:flex-start;">
+      <!-- 1st dropdown -->
+      <select id="rtccSelect" style="flex:1;">
+        <option value="" disabled selected hidden></option>
+        <option>RTCC-1</option>
+        <option>RTCC-2</option>
+        <option>RTCC-3</option>
+        <option>RTCC-4</option>
+        <option>RTCC-5</option>
+        <option>RTCC-6</option>
+        <option>RTCC-7</option>
+        <option>Other</option>
+      </select>
+      <!-- dynamic “Other” text -->
+      <input type="text" id="rtccOtherInput" placeholder="Specify RTCC" style="display:none; flex:1;" />
+      <!-- 2nd dropdown -->
+      <select id="rtccIssueSelect" style="flex:1;">
+        <option value="" disabled selected hidden></option>
+        <option>Tap Changing Indicator Defective</option>
+        <option>ROTI Open</option>
+        <option>RWTI Open</option>
+        <option>ROTI Display Defective</option>
+        <option>RWTI Display Defective</option>
+        <option>RTCC Disconnected</option>
+      </select>
+      <!-- Add button -->
+      <button id="addRTCCBtn" class="section-btn">Add</button>
     </div>
+   
+    <!-- Manual‐entry row below -->
+       <div style="
+       margin-top:0.5rem;
+       display:flex;
+       justify-content:center;
+       align-items:center;
+       gap:0.5rem;
+       flex-wrap:wrap;
+       width:100%;
+       ">
+      <input type="text"
+       id="rtccManualInput"
+       placeholder="Other Observation"
+       style="flex:1;"
+      />
+      <button id="addRTCCManualBtn" class="section-btn">Add</button>
+    </div>
+  </div>
+
+<!-- Panel Room Sub-tab -->
+<div id="othRoom" class="sub-section" style="padding:0.5rem;">
+  <div style="
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem 1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    ">
+    <label><input type="checkbox" name="panelRoomObs" value="11KV Panel Gap" /> 11KV Panel Gap</label>
+    <label><input type="checkbox" name="panelRoomObs" value="33KV Panel Gap" /> 33KV Panel Gap</label>
+    <label><input type="checkbox" name="panelRoomObs" value="11KV Panel Hole" /> 11KV Panel Hole</label>
+    <label><input type="checkbox" name="panelRoomObs" value="33KV Panel Hole" /> 33KV Panel Hole</label>
+    <label><input type="checkbox" name="panelRoomObs" value="11KV Panels Dust & Spider" /> 11KV Panels Dust & Spider</label>
+    <label><input type="checkbox" name="panelRoomObs" value="33KV Panels Dust & Spider" /> 33KV Panels Dust & Spider</label>
+    <label><input type="checkbox" name="panelRoomObs" value="11KV Panels Huge Dust & Spider" /> 11KV Panels Huge Dust & Spider</label>
+    <label><input type="checkbox" name="panelRoomObs" value="11KV Panels Huge Dust & Spider" /> 33KV Panels Huge Dust & Spider</label>    
+    <label><input type="checkbox" name="panelRoomObs" value="Safety Mat near 11KV Panel Missing" /> Safety Mat near 11KV Panel Missing</label>
+    <label><input type="checkbox" name="panelRoomObs" value="Safety Mat near 33KV Panel Missing" /> Safety Mat near 33KV Panel Missing</label>
+    <label><input type="checkbox" name="panelRoomObs" value="Cable Trench Cover Missing" /> Cable Trench Cover Missing</label>
+  </div>
+
+  <div style="
+      margin-top: 0.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      max-width: 600px;
+      margin: 0 auto;
+    ">
+    <input
+      type="text"
+      id="roomManualInput"
+      placeholder="Other Observation"
+      style="flex:1;"
+    />
+    <button id="addRoomManualBtn" class="section-btn">Add</button>
   </div>
 </div>
 
 
+
+
+  <h2 class="compact-live-heading" style="font-weight:bold; text-align:center; color:#00f2ff;">
+    MEASUREMENT OF PARTIAL DISCHARGE, TEMPERATURE RECORDED &amp; OTHER FINDINGS OF THE INDOOR PANELS
+  </h2>
+
+
+
+
+
+
+</div>
+
+
 <!-- ─────────── LIVE CONSOLIDATED TABLE ─────────── -->
+
+<!-- Back button (styled like other action buttons) -->
+<div class="action-buttons" style="margin-bottom:1rem;">
+  <button
+    id="backButton"
+    class="section-btn"
+    onclick="window.location.href='select_area.html'">
+    Back
+  </button>
+</div>
+
 <h2 class="compact-live-heading" style="font-weight:bold; text-align:center; color:#00f2ff;">
   MEASUREMENT OF PARTIAL DISCHARGE, TEMPERATURE RECORDED &amp; OTHER FINDINGS OF THE INDOOR PANELS
 </h2>
@@ -1587,9 +2006,23 @@ h2.compact-live-heading {
 </div>
 
 
+  <!-- Download buttons for Live Table -->
+  <div class="action-buttons" style="margin-bottom:2rem; display:flex; justify-content:center; gap:1rem;">
+    <button id="downloadDocBtn"   class="section-btn">Download Doc</button>
+    <button id="downloadPdfBtn"   class="section-btn">Download PDF</button>
+    <button id="downloadExcelBtn" class="section-btn">Download Excel</button>
+  </div>
+
+<!-- include FileSaver and html-docx for Word export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.4.1/html-docx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+
+
   <!-- link to external JS -->
   <script src="control_room.js"></script>
 </body>
 </html>
+
 
 
