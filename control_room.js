@@ -186,6 +186,32 @@ tempSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
 
 function populateTemp11() {
   const tbody = document.querySelector('#tableTemp11 tbody');
+
+
+// ─── PRESERVE existing readings by name AND by index ───
+const oldTempByName  = {};
+const oldTempByIndex = [];
+tbody.querySelectorAll('tr').forEach((row, idx) => {
+  const entry = {
+    values: [
+      row.cells[4].querySelector('input').value,
+      row.cells[5].querySelector('input').value,
+      row.cells[6].querySelector('input').value
+    ],
+    checks: [
+      row.cells[4].querySelector('input[type="checkbox"]').checked,
+      row.cells[5].querySelector('input[type="checkbox"]').checked,
+      row.cells[6].querySelector('input[type="checkbox"]').checked
+    ]
+  };
+  const name = row.cells[1].textContent.trim();
+  oldTempByName[name]   = entry;
+  oldTempByIndex[idx]   = entry;
+});
+
+
+
+
   tbody.innerHTML = '';
   // table11Body was declared up above as document.querySelector('#table11 tbody')
   table11Body.querySelectorAll('tr').forEach((r, i) => {
@@ -209,6 +235,11 @@ const tableId = r.closest('table').id;  // "table11" or "table33"
     const td3 = document.createElement('td');
     td3.textContent = r.cells[3].querySelector('input').value;
     tr.appendChild(td3);
+
+const panelName = td1.textContent;
+
+
+
 // F1, B1, B2 → single wrapper div inside each cell
 for (let j = 0; j < 3; j++) {
   const td = document.createElement('td');
@@ -237,6 +268,19 @@ for (let j = 0; j < 3; j++) {
   lbl.textContent    = 'H';
   lbl.style.fontSize = '0.75rem';
   wrapper.appendChild(lbl);
+
+
+
+const prev = oldTempByName[panelName] || oldTempByIndex[i];
+if (prev) {
+  inp.value   = prev.values[j]  || '';
+  cb.checked  = prev.checks[j]  || false;
+}
+
+
+
+
+
 
   td.appendChild(wrapper);
   tr.appendChild(td);
@@ -265,6 +309,32 @@ document.getElementById('saveTemp11').addEventListener('click', () => {
 
 function populateTemp33() {
   const tbody = document.querySelector('#tableTemp33 tbody');
+
+// ─── PRESERVE existing readings by name AND by index ───
+const oldTempByName  = {};
+const oldTempByIndex = [];
+tbody.querySelectorAll('tr').forEach((row, idx) => {
+  const entry = {
+    values: [
+      row.cells[4].querySelector('input').value,
+      row.cells[5].querySelector('input').value,
+      row.cells[6].querySelector('input').value
+    ],
+    checks: [
+      row.cells[4].querySelector('input[type="checkbox"]').checked,
+      row.cells[5].querySelector('input[type="checkbox"]').checked,
+      row.cells[6].querySelector('input[type="checkbox"]').checked
+    ]
+  };
+  const name = row.cells[1].textContent.trim();
+  oldTempByName[name]   = entry;
+  oldTempByIndex[idx]   = entry;
+});
+
+
+
+
+
   tbody.innerHTML = '';
   table33Body.querySelectorAll('tr').forEach((r, i) => {
     const tr = document.createElement('tr');
@@ -284,6 +354,11 @@ function populateTemp33() {
     const td3 = document.createElement('td');
     td3.textContent = r.cells[3].querySelector('input').value;
     tr.appendChild(td3);
+
+
+const panelName = td1.textContent;
+
+
 
 // F1, B1, B2 → single wrapper div inside each cell
 for (let j = 0; j < 3; j++) {
@@ -313,6 +388,16 @@ for (let j = 0; j < 3; j++) {
   lbl.textContent    = 'H';
   lbl.style.fontSize = '0.75rem';
   wrapper.appendChild(lbl);
+
+
+const prev = oldTempByName[panelName] || oldTempByIndex[i];
+if (prev) {
+  inp.value   = prev.values[j]  || '';
+  cb.checked  = prev.checks[j]  || false;
+}
+
+
+
 
   td.appendChild(wrapper);
   tr.appendChild(td);
@@ -377,6 +462,28 @@ const classifications = [
 
 function populateUS11() {
   const tbody = document.querySelector('#tableUltrasound11 tbody');
+
+
+
+// ─── PRESERVE existing US readings by name AND by index ───
+const oldUSByName  = {};
+const oldUSByIndex = [];
+tbody.querySelectorAll('tr').forEach((row, idx) => {
+  const arr = Array.from({ length: 6 }, (_, j) => ({
+    val: row.cells[j + 4].querySelector('input').value,
+    sel: row.cells[j + 4].querySelector('select').value
+  }));
+  const name = row.cells[1].textContent.trim();
+  oldUSByName[name]   = arr;
+  oldUSByIndex[idx]   = arr;
+});
+
+
+  tbody.innerHTML = '';
+
+
+
+
   tbody.innerHTML = '';
   // table11Body was declared earlier: document.querySelector('#table11 tbody')
   table11Body.querySelectorAll('tr').forEach((r, i) => {
@@ -392,6 +499,11 @@ function populateUS11() {
       td.textContent = cell.value;
       tr.appendChild(td);
     });
+
+  const panelName = tr.cells[1].textContent;
+
+
+
     // F1, B1, B2, PT, S1, S2 → input + dropdown
     for (let j = 0; j < 6; j++) {
       const td = document.createElement('td');
@@ -408,6 +520,18 @@ function populateUS11() {
         const opt = document.createElement('option');
         opt.value = opt.textContent = text;
         sel.appendChild(opt);
+
+const arr  = oldUSByName[panelName] || oldUSByIndex[i] || [];
+const prev = arr[j];
+if (prev) {
+  inp.value = prev.val || '';
+  sel.value = prev.sel || '';
+}
+
+
+
+
+
       });
       td.appendChild(sel);
       tr.appendChild(td);
@@ -418,6 +542,27 @@ function populateUS11() {
 
 function populateUS33() {
   const tbody = document.querySelector('#tableUltrasound33 tbody');
+
+
+// ─── PRESERVE existing US readings by name AND by index ───
+const oldUSByName  = {};
+const oldUSByIndex = [];
+tbody.querySelectorAll('tr').forEach((row, idx) => {
+  const arr = Array.from({ length: 6 }, (_, j) => ({
+    val: row.cells[j + 4].querySelector('input').value,
+    sel: row.cells[j + 4].querySelector('select').value
+  }));
+  const name = row.cells[1].textContent.trim();
+  oldUSByName[name]   = arr;
+  oldUSByIndex[idx]   = arr;
+});
+
+
+  tbody.innerHTML = '';
+
+
+
+
   tbody.innerHTML = '';
   table33Body.querySelectorAll('tr').forEach((r, i) => {
     const tr = document.createElement('tr');
@@ -430,6 +575,11 @@ function populateUS33() {
       td.textContent = cell.value;
       tr.appendChild(td);
     });
+
+  const panelName = tr.cells[1].textContent;
+
+
+
     for (let j = 0; j < 6; j++) {
       const td = document.createElement('td');
       const inp = document.createElement('input');
@@ -444,6 +594,18 @@ function populateUS33() {
         const opt = document.createElement('option');
         opt.value = opt.textContent = text;
         sel.appendChild(opt);
+
+
+const arr  = oldUSByName[panelName] || oldUSByIndex[i] || [];
+const prev = arr[j];
+if (prev) {
+  inp.value = prev.val || '';
+  sel.value = prev.sel || '';
+}
+
+
+
+
       });
       td.appendChild(sel);
       tr.appendChild(td);
@@ -483,6 +645,26 @@ tevSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
 
   function populateTEV11() {
     const tbody = document.querySelector('#tableTEV11 tbody');
+
+
+// ─── PRESERVE existing TEV readings by name AND by index ───
+const oldTEVByName  = {};
+const oldTEVByIndex = [];
+tbody.querySelectorAll('tr').forEach((row, idx) => {
+  const arr = Array.from({ length: 6 }, (_, j) =>
+    row.cells[j + 4].querySelector('input').value
+  );
+  const name = row.cells[1].textContent.trim();
+  oldTEVByName[name]   = arr;
+  oldTEVByIndex[idx]   = arr;
+});
+
+
+  tbody.innerHTML = '';
+
+
+
+
     tbody.innerHTML = '';
     table11Body.querySelectorAll('tr').forEach((r, i) => {
       const tr = document.createElement('tr');
@@ -496,6 +678,12 @@ tevSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
         td.textContent = txt;
         tr.appendChild(td);
       });
+
+  const panelName = tr.cells[1].textContent;
+
+
+
+
       // TF1, TB1, TB2, TPT, TS1, TS2 → centered numeric inputs
       for (let j = 0; j < 6; j++) {
         const td = document.createElement('td');
@@ -503,6 +691,16 @@ tevSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
         inp.type = 'number';
         inp.placeholder = 'dB';
         inp.style.textAlign = 'center';
+
+
+const prevArr = oldTEVByName[panelName] || oldTEVByIndex[i];
+if (prevArr) {
+  inp.value = prevArr[j] || '';
+}
+
+
+
+
         td.appendChild(inp);
         tr.appendChild(td);
       }
@@ -512,6 +710,26 @@ tevSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
 
   function populateTEV33() {
     const tbody = document.querySelector('#tableTEV33 tbody');
+
+
+// ─── PRESERVE existing TEV readings by name AND by index ───
+const oldTEVByName  = {};
+const oldTEVByIndex = [];
+tbody.querySelectorAll('tr').forEach((row, idx) => {
+  const arr = Array.from({ length: 6 }, (_, j) =>
+    row.cells[j + 4].querySelector('input').value
+  );
+  const name = row.cells[1].textContent.trim();
+  oldTEVByName[name]   = arr;
+  oldTEVByIndex[idx]   = arr;
+});
+
+
+  tbody.innerHTML = '';
+
+
+
+
     tbody.innerHTML = '';
     table33Body.querySelectorAll('tr').forEach((r, i) => {
       const tr = document.createElement('tr');
@@ -524,12 +742,24 @@ tevSection.querySelectorAll('.sub-tab-btn').forEach(btn => {
         td.textContent = txt;
         tr.appendChild(td);
       });
+
+  const panelName = tr.cells[1].textContent;
+
+
       for (let j = 0; j < 6; j++) {
         const td = document.createElement('td');
         const inp = document.createElement('input');
         inp.type = 'number';
         inp.placeholder = 'dB';
         inp.style.textAlign = 'center';
+
+const prevArr = oldTEVByName[panelName] || oldTEVByIndex[i];
+if (prevArr) {
+  inp.value = prevArr[j] || '';
+}
+
+
+
         td.appendChild(inp);
         tr.appendChild(td);
       }
@@ -1993,8 +2223,8 @@ document.getElementById('downloadDocBtn').addEventListener('click', () => {
       <head>
         <meta charset="UTF-8">
        <style>
-       /* A4 Landscape, 1 cm margins */
-       @page { size: A4 landscape; margin: 1cm; }
+       /* Legal Landscape, 1 cm margins */
+       @page { size: legal landscape; margin: 1cm; }
       /* “No Spacing” style for all table text (including divs) */
         body, p, th, td, div {
            margin: 0;
@@ -2064,63 +2294,73 @@ document.getElementById('downloadDocBtn').addEventListener('click', () => {
     saveAs(blob, `${sub}_${dd}.${mm}.${yyyy}.doc`);
    });
 
-  // ── Download Live Table as .pdf ──
+// ── Download Live Table as .pdf ──
 document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-  // 1. Build filename
-  const sub = localStorage.getItem('selectedSubstation') || 'Substation';
-  const now = new Date();
-  const dd  = String(now.getDate()).padStart(2,'0');
-  const mm  = String(now.getMonth()+1).padStart(2,'0');
-  const yyyy= now.getFullYear();
+  const container = document.getElementById('liveTableContainer');
+
+  // 1) Force all text to black so it prints clearly
+  container.classList.add('pdf-black');
+
+  // 2) Inject only your border/background PDF-styles (no width overrides)
+  const pdfStyle = document.createElement('style');
+  pdfStyle.id = 'pdf-export-style';
+  pdfStyle.textContent = `
+    @page { size: legal landscape; margin: 1cm; }
+    body, p, th, td, div { margin:0; padding:0; font-family:Cambria; }
+    th, td {
+      border:1px solid #000 !important;
+      padding:5px !important;
+      font-size:11pt !important;
+      color:#000 !important;
+    }
+    th { background-color:#d9d9d9 !important; }
+    tr.kv-11 td,
+    tr.kv-33 td,
+    tr.kv-header td { background-color:#dbe5f1 !important; }
+    tr.obs-header td { background-color:#d9d9d9 !important; }
+    tr.bat   td { background-color:#f2dcdc !important; }
+    tr.crp   td { background-color:#ebf1de !important; }
+    tr.rtcc  td { background-color:#fdeada !important; }
+    tr.proom td { background-color:#fff2cc !important; }
+  `;
+  document.head.appendChild(pdfStyle);
+
+  // 3) Compute a CSS scale so the table fits into (14" – 2×0.5") of printable width
+  const DPI = 96;
+  const LEGAL_WIDTH_IN = 17.5;           // legal in landscape
+  const MARGIN_IN = 0.5;               // ½" left & right
+  const availablePx = (LEGAL_WIDTH_IN - MARGIN_IN * 2) * DPI;
+  const tablePx     = container.getBoundingClientRect().width;
+  const scaleFactor = Math.min(1, availablePx / tablePx);
+
+  container.style.transformOrigin = 'top left';
+  container.style.transform       = `scale(${scaleFactor})`;
+
+  // 4) Build your filename
+  const sub      = localStorage.getItem('selectedSubstation') || 'Substation';
+  const now      = new Date();
+  const dd       = String(now.getDate()).padStart(2,'0');
+  const mm       = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy     = now.getFullYear();
   const filename = `${sub}_${dd}.${mm}.${yyyy}.pdf`;
 
-  // 2. Force black text on the container
-  const element = document.getElementById('liveTableContainer');
-  element.classList.add('pdf-black');
-
-// 3. Inject the Word-style CSS for tables into <head>
-const pdfStyle = document.createElement('style');
-pdfStyle.id = 'pdf-export-style';
-pdfStyle.textContent = `
-  @page { size: A4 landscape; margin: 1cm; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  th, td {
-    border: 1px solid #000 !important;
-    padding: 5px;
-    font-family: Cambria;
-    font-size: 11pt;
-    color: #000 !important;
-  }
-  th { background-color: #d9d9d9 !important; }
-  /* 11KV & 33KV panel rows */
-  tr.kv-11 td,
-  tr.kv-33 td,
-  tr.kv-header td { background-color: #dbe5f1 !important; }
-  tr.obs-header td { background-color: #d9d9d9 !important; }
-  tr.bat   td { background-color: #f2dcdc !important; }
-  tr.crp   td { background-color: #ebf1de !important; }
-  tr.rtcc  td { background-color: #fdeada !important; }
-  tr.proom td { background-color: #fff2cc !important; }
-`;
-document.head.appendChild(pdfStyle);
-
-
-  // 4. Run html2pdf() with your desired options and save
+  // 5) Fire html2pdf
   html2pdf().set({
-    margin:       [0.5,0.5,0.5,0.5],
+    margin:       [0.5,0.5,0.5,0.5],   // ½" all around
     filename,
-    image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 2 },
-    jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    jsPDF:        {
+      unit:        'in',
+      format:      'legal',
+      orientation: 'landscape'
+    }
   })
-  .from(element)
+  .from(container)
   .save()
   .finally(() => {
-    // 5. Clean up: remove injected CSS and class
-    element.classList.remove('pdf-black');
+    // 6) Clean up styles/transforms
+    container.style.transform = '';
+    container.classList.remove('pdf-black');
     document.head.removeChild(pdfStyle);
   });
 });
@@ -2129,6 +2369,5 @@ document.head.appendChild(pdfStyle);
 
 
 
+
 });
-
-
