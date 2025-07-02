@@ -141,6 +141,32 @@
     font-size: 14px !important;
     padding: 8px 6px !important;
   }
+
+/* Shrink Temp inputs and let “H” wrap on small screens */
+#tableTemp11 td > div,
+#tableTemp33 td > div {
+  flex-wrap: wrap       !important;
+  gap:       0.2rem     !important;
+}
+#tableTemp11 td > div input[type="number"],
+#tableTemp33 td > div input[type="number"] {
+  width:   40px          !important;
+  padding: 2px 4px      !important;
+}
+#tableTemp11 td > div input[type="checkbox"],
+#tableTemp33 td > div input[type="checkbox"] {
+  transform: scale(0.9) !important;
+  margin:    0          !important;
+}
+#tableTemp11 td > div span,
+#tableTemp33 td > div span {
+  font-size: 0.6rem     !important;
+  margin:    0          !important;
+}
+
+
+
+
 }
 
 
