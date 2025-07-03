@@ -10,6 +10,14 @@
    'Battery & Battery Charger': []
  };
 
+
+// ── Restore Other-tab actions if any ──
+const storedOther = JSON.parse(localStorage.getItem('otherActionsStore') || 'null');
+if (storedOther) {
+  Object.assign(otherActionsStore, storedOther);
+}
+
+
 // Store manual “Other” entries so they persist across recalcBatActions
 const manualBatEntries = [];
 
@@ -300,8 +308,11 @@ document.getElementById('saveTemp11').addEventListener('click', () => {
     vcbState:  r.cells[2].textContent,
     load:      r.cells[3].textContent,
     f1:        r.cells[4].querySelector('input').value,
+    f1H:       r.cells[4].querySelector('input[type="checkbox"]').checked,
     b1:        r.cells[5].querySelector('input').value,
-    b2:        r.cells[6].querySelector('input').value
+    b1H:       r.cells[5].querySelector('input[type="checkbox"]').checked,
+    b2:        r.cells[6].querySelector('input').value,
+    b2H:       r.cells[6].querySelector('input[type="checkbox"]').checked
   }));
   localStorage.setItem('temp11Data', JSON.stringify(tempData11));
   alert('11KV Temp data saved');
@@ -414,8 +425,11 @@ document.getElementById('saveTemp33').addEventListener('click', () => {
     vcbState:  r.cells[2].textContent,
     load:      r.cells[3].textContent,
     f1:        r.cells[4].querySelector('input').value,
+    f1H:       r.cells[4].querySelector('input[type="checkbox"]').checked,
     b1:        r.cells[5].querySelector('input').value,
-    b2:        r.cells[6].querySelector('input').value
+    b1H:       r.cells[5].querySelector('input[type="checkbox"]').checked,
+    b2:        r.cells[6].querySelector('input').value,
+    b2H:       r.cells[6].querySelector('input[type="checkbox"]').checked
   }));
   localStorage.setItem('temp33Data', JSON.stringify(tempData33));
   alert('33KV Temp data saved');
@@ -614,10 +628,38 @@ if (prev) {
   });
 }
 
-document.getElementById('saveUS11')
-  .addEventListener('click', () => { /* … save logic … */ });
-document.getElementById('saveUS33')
-  .addEventListener('click', () => { /* … save logic … */ });
+// ── Save 11KV Ultrasound ──
+document.getElementById('saveUS11').addEventListener('click', () => {
+  const rows = document.querySelectorAll('#tableUltrasound11 tbody tr');
+  const data = [...rows].map(r => ({
+    panelName: r.cells[1].textContent,
+    vcbState:  r.cells[2].textContent,
+    load:      r.cells[3].textContent,
+    readings: Array.from({ length: 6 }, (_, j) => ({
+      val: r.cells[j + 4].querySelector('input').value,
+      sel: r.cells[j + 4].querySelector('select').value
+    }))
+  }));
+  localStorage.setItem('us11Data', JSON.stringify(data));
+  alert('11KV Ultrasound data saved');
+});
+
+// ── Save 33KV Ultrasound ──
+document.getElementById('saveUS33').addEventListener('click', () => {
+  const rows = document.querySelectorAll('#tableUltrasound33 tbody tr');
+  const data = [...rows].map(r => ({
+    panelName: r.cells[1].textContent,
+    vcbState:  r.cells[2].textContent,
+    load:      r.cells[3].textContent,
+    readings: Array.from({ length: 6 }, (_, j) => ({
+      val: r.cells[j + 4].querySelector('input').value,
+      sel: r.cells[j + 4].querySelector('select').value
+    }))
+  }));
+  localStorage.setItem('us33Data', JSON.stringify(data));
+  alert('33KV Ultrasound data saved');
+});
+
 
 
 // ==== wire up nested sub-tabs under #tev with first-click guard ====
@@ -988,10 +1030,12 @@ function recalcBatActions() {
   document.getElementById('bat11').addEventListener(evt, () => {
     recalcBatActions();
     populateLiveTable();
+    localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
   });
   document.getElementById('bat33').addEventListener(evt, () => {
     recalcBatActions();
     populateLiveTable();
+    localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
   });
 });
 
@@ -1006,6 +1050,7 @@ document.getElementById('addBat11Other').addEventListener('click', () => {
   // rebuild & refresh
   recalcBatActions();
   populateLiveTable();
+  localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
 });
 
 document.getElementById('addBat33Other').addEventListener('click', () => {
@@ -1016,6 +1061,7 @@ document.getElementById('addBat33Other').addEventListener('click', () => {
   fld.value = '';
   recalcBatActions();
   populateLiveTable();
+  localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
 });
 
 
@@ -1197,7 +1243,10 @@ if (otherActionsStore['11'][panelName].includes(actionText)) {
 }
 otherActionsStore['11'][panelName].push(actionText);
 populateLiveTable();
-
+localStorage.setItem(
+  'otherActionsStore',
+  JSON.stringify(otherActionsStore)
+);
 
 });
 
@@ -1233,6 +1282,10 @@ populateLiveTable();
       otherActionsStore['11'][panelName].push(text);
       manualInput.value = '';
       populateLiveTable();
+localStorage.setItem(
+  'otherActionsStore',
+  JSON.stringify(otherActionsStore)
+);
     });
 
 
@@ -1777,12 +1830,183 @@ document.querySelector('#tableTEV33 tbody').addEventListener('input', populateLi
 document.querySelector('#tableTEV33 tbody').addEventListener('change', populateLiveTable);
 
 
+
+
+
+  // ── Load saved Panel Name & Load data ──
+  (function loadPanelData() {
+    const saved11 = JSON.parse(localStorage.getItem('pan11Data') || '[]');
+    if (saved11.length) {
+      table11Body.innerHTML = '';
+      saved11.forEach((item, idx) => {
+        const tr = row11Template.cloneNode(true);
+        tr.cells[0].textContent = idx + 1;
+        tr.cells[1].querySelector('input').value = item.panelName;
+        tr.cells[2].querySelector('select').value = item.vcbState;
+        tr.cells[3].querySelector('input').value = item.load;
+        table11Body.appendChild(tr);
+      });
+    }
+    const saved33 = JSON.parse(localStorage.getItem('pan33Data') || '[]');
+    if (saved33.length) {
+      table33Body.innerHTML = '';
+      saved33.forEach((item, idx) => {
+        const tr = row33Template.cloneNode(true);
+        tr.cells[0].textContent = idx + 1;
+        tr.cells[1].querySelector('input').value = item.panelName;
+        tr.cells[2].querySelector('select').value = item.vcbState;
+        tr.cells[3].querySelector('input').value = item.load;
+        table33Body.appendChild(tr);
+      });
+    }
+  })();
+
+
+
+
+
+
+
+
+
+
   // initial render
   // hydrate TEV & Temp tables once on load
 populateTEV11();
 populateTEV33();
 populateTemp11();
 populateTemp33();
+populateUS11();
+populateUS33();
+
+
+  // ── Load saved TEV data ──
+  (function loadTEVData() {
+    const rows11 = document.querySelectorAll('#tableTEV11 tbody tr');
+    JSON.parse(localStorage.getItem('tev11Data') || '[]')
+      .forEach((item, i) => {
+        const r = rows11[i];
+        if (!r) return;
+        r.cells[4].querySelector('input').value = item.tf1;
+        r.cells[5].querySelector('input').value = item.tb1;
+        r.cells[6].querySelector('input').value = item.tb2;
+        r.cells[7].querySelector('input').value = item.tpt;
+        r.cells[8].querySelector('input').value = item.ts1;
+        r.cells[9].querySelector('input').value = item.ts2;
+      });
+
+    const rows33 = document.querySelectorAll('#tableTEV33 tbody tr');
+    JSON.parse(localStorage.getItem('tev33Data') || '[]')
+      .forEach((item, i) => {
+        const r = rows33[i];
+        if (!r) return;
+        r.cells[4].querySelector('input').value = item.tf1;
+        r.cells[5].querySelector('input').value = item.tb1;
+        r.cells[6].querySelector('input').value = item.tb2;
+        r.cells[7].querySelector('input').value = item.tpt;
+        r.cells[8].querySelector('input').value = item.ts1;
+        r.cells[9].querySelector('input').value = item.ts2;
+      });
+  })();
+
+
+
+  // ── Load saved Temperature data ──
+  (function loadTempData() {
+    const t11 = document.querySelectorAll('#tableTemp11 tbody tr');
+    JSON.parse(localStorage.getItem('temp11Data') || '[]')
+      .forEach((item, i) => {
+        const r = t11[i];
+        if (!r) return;
+        r.cells[4].querySelector('input').value = item.f1;
+        r.cells[4].querySelector('input[type="checkbox"]').checked = !!item.f1H;
+        r.cells[5].querySelector('input').value = item.b1;
+        r.cells[5].querySelector('input[type="checkbox"]').checked = !!item.b1H;
+        r.cells[6].querySelector('input').value = item.b2;
+        r.cells[6].querySelector('input[type="checkbox"]').checked = !!item.b2H;
+      });
+
+    const t33 = document.querySelectorAll('#tableTemp33 tbody tr');
+    JSON.parse(localStorage.getItem('temp33Data') || '[]')
+      .forEach((item, i) => {
+        const r = t33[i];
+        if (!r) return;
+      r.cells[4].querySelector('input').value = item.f1;
+      r.cells[4].querySelector('input[type="checkbox"]').checked = !!item.f1H;
+      r.cells[5].querySelector('input').value = item.b1;
+      r.cells[5].querySelector('input[type="checkbox"]').checked = !!item.b1H;
+      r.cells[6].querySelector('input').value = item.b2;
+      r.cells[6].querySelector('input[type="checkbox"]').checked = !!item.b2H;
+      });
+  })();
+
+
+
+
+// ── Load saved Ultrasound data ──
+(function loadUSData() {
+  const saved11 = JSON.parse(localStorage.getItem('us11Data') || '[]');
+  document.querySelectorAll('#tableUltrasound11 tbody tr').forEach((r,i) => {
+    const item = saved11[i];
+    if (!item) return;
+    item.readings.forEach((rd,j) => {
+      r.cells[j+4].querySelector('input').value  = rd.val;
+      r.cells[j+4].querySelector('select').value = rd.sel;
+    });
+  });
+  const saved33 = JSON.parse(localStorage.getItem('us33Data') || '[]');
+  document.querySelectorAll('#tableUltrasound33 tbody tr').forEach((r,i) => {
+    const item = saved33[i];
+    if (!item) return;
+    item.readings.forEach((rd,j) => {
+      r.cells[j+4].querySelector('input').value  = rd.val;
+      r.cells[j+4].querySelector('select').value = rd.sel;
+    });
+  });
+})();
+
+
+// ── Load saved Battery & Battery Charger data ──
+(function loadBatData() {
+  const savedBat11 = JSON.parse(localStorage.getItem('bat11Data') || 'null');
+  if (savedBat11) {
+    // voltage
+    document.getElementById('bat11VoltageOn').value = savedBat11.voltage.acOn;
+    document.getElementById('bat11VoltageOff').value = savedBat11.voltage.acOff;
+    document.getElementById('bat11VoltageOnProblem').checked  = savedBat11.voltage.problemOn;
+    document.getElementById('bat11VoltageOffProblem').checked = savedBat11.voltage.problemOff;
+    // cell voltage
+    document.getElementById('bat11CellVoltage').value = savedBat11.cellVoltage;
+    // general-findings checkboxes
+    document.querySelectorAll('#bat11 input[name="bat11GenFindings"]').forEach(cb => {
+      cb.checked = savedBat11.generalFindings.includes(cb.value);
+    });
+    // “Other” remark
+    document.getElementById('bat11GenFindingsOther').value = savedBat11.otherRemarks;
+  }
+
+  const savedBat33 = JSON.parse(localStorage.getItem('bat33Data') || 'null');
+  if (savedBat33) {
+    document.getElementById('bat33VoltageOn').value = savedBat33.voltage.acOn;
+    document.getElementById('bat33VoltageOff').value = savedBat33.voltage.acOff;
+    document.getElementById('bat33VoltageOnProblem').checked  = savedBat33.voltage.problemOn;
+    document.getElementById('bat33VoltageOffProblem').checked = savedBat33.voltage.problemOff;
+    document.getElementById('bat33CellVoltage').value = savedBat33.cellVoltage;
+    document.querySelectorAll('#bat33 input[name="bat33GenFindings"]').forEach(cb => {
+      cb.checked = savedBat33.generalFindings.includes(cb.value);
+    });
+    document.getElementById('bat33GenFindingsOther').value = savedBat33.otherRemarks;
+  }
+
+  // rebuild actions & live table now that our inputs are back
+  recalcBatActions();
+  populateLiveTable();
+  localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
+})();
+
+
+
+
 
 
 // ── 33KV CRP Observations UI wiring ──
@@ -1961,6 +2185,8 @@ document.getElementById('addCRPBtn').addEventListener('click', () => {
   }
   otherActionsStore['CRP'].push(actionText);
   populateLiveTable();
+  localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
+
 });
 
 
@@ -1975,6 +2201,8 @@ document.getElementById('addCRPManualBtn').addEventListener('click', () => {
   otherActionsStore['CRP'].push(text);
   document.getElementById('crpManualInput').value = '';
   populateLiveTable();
+  localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
+
 });
 
 
@@ -2008,6 +2236,7 @@ document.querySelectorAll('#othRoom input[type="checkbox"][name="panelRoomObs"]'
           otherActionsStore['Panel Room'].filter(a => a !== action);
       }
       populateLiveTable();
+      localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
     });
   });
 
@@ -2020,6 +2249,7 @@ document.getElementById('addRoomManualBtn').addEventListener('click', () => {
     otherActionsStore['Panel Room'].push(text);
     document.getElementById('roomManualInput').value = '';
     populateLiveTable();
+    localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
   } else {
     alert('This observation has already been added.');
   }
@@ -2164,6 +2394,7 @@ rtccSelect.addEventListener('change', () => {
    }
    otherActionsStore['RTCC'].push(actionText);
    populateLiveTable();
+   localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
  });
 
 
@@ -2178,6 +2409,7 @@ addRTCCManualBtn.addEventListener('click', () => {
   otherActionsStore['RTCC'].push(text);
   document.getElementById('rtccManualInput').value = '';
   populateLiveTable();
+  localStorage.setItem('otherActionsStore', JSON.stringify(otherActionsStore));
 });
 
 // Inject RTCC lines into the live table
@@ -2367,6 +2599,21 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
 
 
 
+  // ── Reset button logic ──
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('This will clear ALL entries and reset the form. Proceed?')) return;
+    // 1) Remove every saved data key
+    [
+      'pan11Data','pan33Data',
+      'tev11Data','tev33Data',
+      'temp11Data','temp33Data',
+      'us11Data','us33Data',
+      'ambientTemp11Data','ambientTemp33Data',
+      'bat11Data','bat33Data'
+    ].forEach(key => localStorage.removeItem(key));
+    // 2) Reload the page to wipe all in‐memory stores and reset the UI
+    window.location.reload();
+  });
 
 
 
