@@ -2609,7 +2609,7 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
       'temp11Data','temp33Data',
       'us11Data','us33Data',
       'ambientTemp11Data','ambientTemp33Data',
-      'bat11Data','bat33Data'
+      'bat11Data','bat33Data', 'otherActionsStore'
     ].forEach(key => localStorage.removeItem(key));
     // 2) Reload the page to wipe all in‐memory stores and reset the UI
     window.location.reload();
