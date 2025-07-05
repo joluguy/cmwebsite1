@@ -43,6 +43,21 @@
 </head>
 <body>
   <div class="header" id="substationHeader"></div>
+
+<!-- Reset Button -->
+<div style="position: absolute; top: 20px; right: 20px;">
+  <button id="resetBtn"
+          style="background-color: red;
+                 color: white;
+                 padding: 6px 12px;
+                 border: none;
+                 border-radius: 4px;
+                 cursor: pointer;">
+    Reset
+  </button>
+</div>
+
+
   <h1>Ultrasound Inspection Entry</h1>
 
   <div class="table-container">
@@ -80,14 +95,18 @@
   <!-- JavaScript -->
   <script src="ultrasound.js"></script>
   <script>
-    document.getElementById('addRowBtn').onclick = addRow;
-    document.getElementById('saveBtn').onclick   = saveFormData;
-    window.onload = () => {
-      document.getElementById('substationHeader').innerText =
-        "Entering data for '" + (localStorage.getItem('selectedSubstation')||'') + "'";
-      loadFormData();
+  document.getElementById('addRowBtn').onclick = addRow;
+  document.getElementById('saveBtn').onclick   = saveFormData;
+  window.onload = () => {
+    document.getElementById('substationHeader').innerText =
+      "Entering data for '" + (localStorage.getItem('selectedSubstation')||'') + "'";
+    loadFormData();
+    // only add a new empty row if we found no saved data
+    if (!localStorage.getItem('ultrasoundData')) {
       addRow();
-    };
-  </script>
+    }
+  };
+</script>
+
 </body>
 </html>
