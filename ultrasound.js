@@ -9,7 +9,7 @@ const locationOptions = [
   'Bus PT','PT-1','PT-2','PT-3','Station Service Transformer','Other'
 ];
 const sideOptions = [
-  'Both Sides','PTR Side','Bus Side','CT Side','VCB Side','LA Side','Line Side',
+  'PTR Side','Bus Side','CT Side','VCB Side','LA Side','Line Side',
   'Incoming Side','Cable Side','Station Transformer Side','Other'
 ];
 const classifications = [
@@ -35,6 +35,11 @@ const prompt2Maps = {
     'Conductor':          ['HV Conductor','LV Conductor','LV Bushing to Cable Conductor','Other'],
     'Lightning Arrestor':  ['HV LA','LV LA','Other']
   },
+
+
+
+
+
   actionTemplates: {
     '33KV CT': {
       'Corona':                      'Necessary action to be taken care of towards cleaning, maintenance and oil checking of the said CT.',
@@ -48,6 +53,8 @@ const prompt2Maps = {
       'Corona with Severe Tracking': 'Necessary cleaning, maintenance and oil checking of the said CT. Insulation resistance in between CT primary to earth and Primary to secondary by 5KV megger and CT secondary to earth by 500Volt megger are to be measured and if found low then the CT is to be replaced.',
       'Arcing':                      'Necessary action to be taken care of towards replacement of the CT with a healthy one.'
     },
+
+
     '33KV PT': {
       /* same as CT but “PT” */
       'Corona':                      'Necessary action to be taken care of towards cleaning, maintenance and oil checking of the said PT.',
@@ -91,6 +98,11 @@ const prompt2Maps = {
   }
 };
 
+// — persist custom live-table actions —
+let manualActions = JSON.parse(localStorage.getItem('ultrasoundActions') || '{}');
+
+
+
 // === Helpers ===
 function createDropdown(opts, onChange) {
   const sel = document.createElement('select');
@@ -111,6 +123,7 @@ function createPhaseField() {
     cbw.append(lab);
   });
   const rec = Object.assign(document.createElement('input'), { type:'number', placeholder:'Recording No.' });
+  rec.className = 'recNo';   
   wrap.append(num, cls, cbw, rec);
   return wrap;
 }
@@ -139,6 +152,19 @@ function addRow() {
       inp.type='text'; inp.placeholder='Enter Equipment Details';
       this.replaceWith(inp);
     }
+
+
+  // — new: disable Side dropdown when appropriate —
+  const disableFor = ['33KV CT','33KV PT','33KV VCB','Bushing','Lightning Arrestor'];
+  if (disableFor.includes(this.value)) {
+    selSide.disabled = true;
+    selSide.value = '';
+  } else {
+    selSide.disabled = false;
+  }
+
+
+
     renderLive();
   });
   tdEq.append(selEq); tr.append(tdEq);
@@ -170,6 +196,21 @@ function addRow() {
     renderLive();
   });
   tdSide.append(selSide); tr.append(tdSide);
+
+
+// ── disable Side dropdown for certain equipment ──
+selEq.addEventListener('change', function() {
+  const disableFor = ['33KV CT','33KV PT','33KV VCB','Bushing','Lightning Arrestor'];
+  if (disableFor.includes(this.value)) {
+    selSide.disabled = true;
+    selSide.value = '';        // clear any previous choice
+  } else {
+    selSide.disabled = false;
+  }
+});
+
+
+
 
   // R/Y/B/Neutral
   for(let i=0; i<4; i++){
@@ -265,33 +306,58 @@ function renderLive(){
       tr.append(td2);
 
       // Phases
-      ['R Phase','Y Phase','B Phase','Neutral'].forEach((ph,j)=>{
-        const f=r.cells[4+j].firstChild;
-        const v=f.querySelector('input[type=number]').value;
-        const cls=f.querySelector('select').value;
-        const cbs={};
-        f.querySelectorAll('input[type=checkbox]').forEach(cb=>cbs[cb.value]=cb.checked);
-        const td=document.createElement('td');
-        if(v&&cls){
-          let out=`${v} dB (${cls})`;
-          if(cbs['Audible']) out+='<br/><strong>Audible</strong>';
-          td.innerHTML=out;
-        } else td.textContent='---';
-        tr.append(td);
-      });
+['R Phase','Y Phase','B Phase','Neutral'].forEach((ph,j) => {
+  const f = r.cells[4+j].firstChild;
+  // core inputs
+  const inputs = Array.from(f.querySelectorAll('input[type=number]'));
+  const v     = inputs[0].value;           // the dB value
+  const recNo = inputs[1].value;           // the Recording No.
+  const cls   = f.querySelector('select').value;
+  const cbs   = {};
+  f.querySelectorAll('input[type=checkbox]')
+   .forEach(cb => cbs[cb.value] = cb.checked);
+
+  const td = document.createElement('td');
+
+  // build output if either measurement or recording exists
+  if ((v && cls) || recNo) {
+    let out = '';
+    if (v && cls) {
+      out = `${v} dB (${cls})`;
+      if (cbs['Audible']) out += '<br/><strong>Audible</strong>';
+    }
+    if (recNo) {
+      // place below Audible (if any)
+      out += (out ? '<br/>' : '') + `<strong>Recording No- ${recNo}</strong>`;
+    }
+    td.innerHTML = out;
+  } else {
+    td.textContent = '---';
+  }
+  tr.append(td);
+});
 
       // Action (editable)
-      if(isBus||isPin){
-        if(i===0){
-          const tdA=document.createElement('td');
-          tdA.textContent = isBus
-            ? prompt2Maps.actionTemplates['Bushing'].default
-            : prompt2Maps.actionTemplates['33KV Pin Insulator'].default;
-          tdA.rowSpan=grp.length;
-          tdA.contentEditable = true;
-          tr.append(tdA);
-        }
-      } else {
+if (isBus || isPin) {
+  if (i === 0) {
+    const tdA = document.createElement('td');
+    // use your saved text if it exists, otherwise fall back to the template
+    if (manualActions[eq]) {
+      tdA.innerHTML = manualActions[eq];
+    } else {
+      tdA.textContent = isBus
+        ? prompt2Maps.actionTemplates['Bushing'].default
+        : prompt2Maps.actionTemplates['33KV Pin Insulator'].default;
+    }
+    tdA.rowSpan = grp.length;
+    tdA.contentEditable = true;
+    tr.append(tdA);
+  }
+}
+
+
+
+        else {
         const tdA=document.createElement('td');
         tdA.contentEditable = true;
         const acts=[];
@@ -346,22 +412,107 @@ function saveFormData(){
         class:f.querySelector('select').value,
         rep:  f.querySelector('input[value="Rep"]').checked,
         ir:   f.querySelector('input[value="IR"]').checked,
-        aud:  f.querySelector('input[value="Audible"]').checked
+        aud:  f.querySelector('input[value="Audible"]').checked,
+        xcb:   f.querySelector('input[value="X-Cbl"]').checked,
+       cdep:  f.querySelector('input[value="C-Dep"]').checked,
+       trck:  f.querySelector('input[value="Trck Mrk"]').checked,
+        rec:   f.querySelector('.recNo').value 
       };
     });
     data.push(e);
   });
   localStorage.setItem('ultrasoundData',JSON.stringify(data));
+
+// — save any custom live-table edits —
+const actionsToSave = {};
+document.querySelectorAll('#liveTable tbody tr').forEach(row => {
+  const eqCell = row.querySelector('td[rowspan]');
+  if (!eqCell) return;                    // skip non-group rows
+  const actionCell = row.querySelector('td[contenteditable]');
+  if (actionCell) {
+    actionsToSave[ eqCell.textContent ] = actionCell.innerHTML;
+  }
+});
+localStorage.setItem('ultrasoundActions', JSON.stringify(actionsToSave));
+
+
   alert('Data saved.');
 }
 
 function loadFormData(){
   const s=localStorage.getItem('ultrasoundData');
   if(!s) return;
+
+  // load any previously saved live-table edits
+  manualActions = JSON.parse(localStorage.getItem('ultrasoundActions') || '{}');
+
+
+
   JSON.parse(s).forEach(e=>{
     addRow();
     const r=document.querySelector('#ultrasoundTable tbody tr:last-child');
-    r.cells[0].querySelector('select,input').value = e.equipment;
+        // ── Equipment Details: rebuild select vs. manual input ──
+    const eqCell = r.cells[0];
+    eqCell.innerHTML = '';  // clear whatever default <select> is there
+
+    // If it’s one of your predefined options, rebuild the <select>
+    if (equipmentOptions.includes(e.equipment)) {
+      const selEq = createDropdown(equipmentOptions, function(){
+        // your exact onChange from addRow():
+        if (['33KV CT','33KV PT','33KV VCB','Post Insulator'].includes(this.value)) {
+          // auto‐precise for CT/PT/VCB
+          r.cells[2].innerHTML = '';
+          const inp = document.createElement('input');
+          inp.type = 'text'; inp.value = this.value; inp.readOnly = true;
+          r.cells[2].append(inp);
+        } else {
+          updatePrecise(this, r.cells[2]);
+        }
+        // “Other” → switch to manual <input>
+        if (this.value === 'Other') {
+          const inp = document.createElement('input');
+          inp.type = 'text'; inp.placeholder = 'Enter Equipment Details';
+          this.replaceWith(inp);
+        }
+        renderLive();
+      });
+      selEq.value = e.equipment;       // restore saved dropdown choice
+      eqCell.appendChild(selEq);
+
+
+
+// — re-attach Side-disable logic for this loaded row —
+const selSide = r.cells[3].querySelector('select');  // the “Side” dropdown in this row
+selEq.addEventListener('change', function() {
+  const disableFor = ['33KV CT','33KV PT','33KV VCB','Bushing','Lightning Arrestor'];
+  if (disableFor.includes(this.value)) {
+    selSide.disabled = true;
+    selSide.value = '';
+  } else {
+    selSide.disabled = false;
+  }
+});
+// fire once on load so existing rows start in the correct state
+selEq.dispatchEvent(new Event('change'));
+
+
+    } else {
+      // It was a user‐typed “Other” value: create an <input>
+      const inpEq = document.createElement('input');
+      inpEq.type        = 'text';
+      inpEq.placeholder = 'Enter Equipment Details';
+      inpEq.value       = e.equipment; // restore custom text
+      // re‐wire precise-location lookup on change
+      inpEq.addEventListener('change', () => updatePrecise(inpEq, r.cells[2]));
+      inpEq.addEventListener('input', renderLive);
+      eqCell.appendChild(inpEq);
+    }
+
+    // Finally, trigger the Precise logic on whichever element we built:
+    const eqEl = eqCell.querySelector('select,input');
+    updatePrecise(eqEl, r.cells[2]);
+    // ── end Equipment Details rebuild ──
+
     r.cells[1].querySelector('select,input').value = e.location;
     updatePrecise(r.cells[0].querySelector('select,input'),r.cells[2]);
     r.cells[2].querySelector('select,input').value = e.precise;
@@ -373,6 +524,10 @@ function loadFormData(){
       f.querySelector('input[value="Rep"]').checked     = e[k].rep;
       f.querySelector('input[value="IR"]').checked      = e[k].ir;
       f.querySelector('input[value="Audible"]').checked = e[k].aud;
+      f.querySelector('input[value="X-Cbl"]').checked    = e[k].xcb;
+      f.querySelector('input[value="C-Dep"]').checked    = e[k].cdep;
+      f.querySelector('input[value="Trck Mrk"]').checked = e[k].trck;
+      f.querySelector('.recNo').value = e[k].rec || '';
     });
     r.cells[8].querySelector('input').value = e.remarks;
   });
@@ -386,44 +541,32 @@ document.getElementById('downloadExcelBtn').addEventListener('click', downloadEx
 document.getElementById('downloadDocBtn').addEventListener('click', downloadDoc);
 
 function downloadExcel() {
+  // 1) grab your live table HTML
   const tableHTML = document.getElementById('liveTable').outerHTML;
-  const preamble = 
-    '\uFEFF' +  // UTF-8 BOM
-    '<html ' +
-      'xmlns:o="urn:schemas-microsoft-com:office:office" ' +
-      'xmlns:x="urn:schemas-microsoft-com:office:excel" ' +
-      'xmlns="http://www.w3.org/TR/REC-html40">' +
-    '<head><meta charset="UTF-8"/>' +
-    '<!--[if gte mso 9]>' +
-      '<xml>' +
-        '<x:ExcelWorkbook>' +
-          '<x:ExcelWorksheets>' +
-            '<x:ExcelWorksheet>' +
-              '<x:Name>Sheet1</x:Name>' +
-              '<x:WorksheetOptions>' +
-                '<x:DisplayGridlines/>' +
-              '</x:WorksheetOptions>' +
-            '</x:ExcelWorksheet>' +
-          '</x:ExcelWorksheets>' +
-        '</x:ExcelWorkbook>' +
-      '</xml>' +
-    '<![endif]-->' +
-    '</head><body>';
-  const closing = '</body></html>';
-  const excelFile = preamble + tableHTML + closing;
 
-  const blob = new Blob([excelFile], {
-    type: 'application/vnd.ms-excel;charset=UTF-8'
+  // 2) wrap it in a full Excel-HTML document
+  const preamble =
+    '\uFEFF' + // UTF-8 BOM
+    '<html xmlns:x="urn:schemas-microsoft-com:office:excel">' +
+    '<head><meta charset="UTF-8"></head><body>';
+  const closing = '</body></html>';
+  const excelHTML = preamble + tableHTML + closing;
+
+  // 3) build a Blob with the old Excel MIME
+  const blob = new Blob([excelHTML], {
+    type: 'application/vnd.ms-excel'
   });
+
+  // 4) create/download as .xls
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const sub   = localStorage.getItem('selectedSubstation') || 'Unknown';
   const now   = new Date();
-  const dd    = String(now.getDate()).padStart(2,'0');
-  const mm    = String(now.getMonth()+1).padStart(2,'0');
   const yyyy  = now.getFullYear();
-  a.href     = url;
-  a.download = `Ultrasound_${sub}_${dd}-${mm}-${yyyy}.xls`;
+  const mm    = String(now.getMonth()+1).padStart(2,'0');
+  const dd    = String(now.getDate()).padStart(2,'0');
+  a.href        = url;
+  a.download    = `Ultrasound_${sub}_${dd}-${mm}-${yyyy}.xls`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -434,6 +577,17 @@ function downloadDoc() {
   // 1) clone the live table so we can style it without touching the on-screen version
   const original = document.getElementById('liveTable');
   const clone    = original.cloneNode(true);
+
+// ——— Enforce No Spacing & single black borders ———
+clone.style.borderCollapse = 'collapse';
+clone.querySelectorAll('th, td').forEach(cell => {
+  cell.style.border  = '1px solid black';
+  cell.style.margin  = '0';    // removes extra spacing
+  cell.style.padding = '0';    // tightens cell padding
+});
+
+
+
 
   // 2) header row styling
   const headerRow = clone.querySelector('thead tr');
@@ -478,15 +632,21 @@ function downloadDoc() {
 
 
   // 4) wrap in Word HTML with landscape and font defaults
-  const preamble =
-    '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
-           'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
-           'xmlns="http://www.w3.org/TR/REC-html40">' +
-    '<head><meta charset="utf-8">' +
-    '<style>' +
-      '@page { size: landscape; } ' +
-      'body { font-family: Cambria; font-size: 11pt; } ' +
-    '</style></head><body>';
+const preamble =
+  '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' 
+         'xmlns:w="urn:schemas-microsoft-com:office:word" ' 
+         'xmlns="http://www.w3.org/TR/REC-html40">' 
+  '<head><meta charset="utf-8">' 
+  '<style>' 
+    '@page { size: landscape; } ' 
+    'body { font-family: Cambria; font-size: 11pt; margin: 0; } ' 
+    'table { border-collapse: collapse; } ' 
+    'th, td { border: 1px solid black; margin: 0; padding: 0; } ' 
+    'p { margin: 0; } '       // ensures “No Spacing” on any paragraph
+  '</style></head><body>';
+
+
+
   const closing = '</body></html>';
 
   const html = preamble + clone.outerHTML + closing;
@@ -509,3 +669,19 @@ const date  = `${day}-${month}-${year}`;
   a.click();
   URL.revokeObjectURL(url);
 }
+
+
+
+// ── RESET HANDLER ──
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('Clear all ultrasound entries and live data?')) return;
+
+  // 1) Clear saved form data
+  localStorage.removeItem('ultrasoundData');
+
+  // 2) Empty both tables
+  document.querySelector('#ultrasoundTable tbody').innerHTML = '';
+  document.querySelector('#liveTable tbody').innerHTML       = '';
+});
+
+
