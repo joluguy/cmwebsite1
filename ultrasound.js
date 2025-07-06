@@ -539,6 +539,9 @@ selEq.dispatchEvent(new Event('change'));
 // wire up Download buttons
 document.getElementById('downloadExcelBtn').addEventListener('click', downloadExcel);
 document.getElementById('downloadDocBtn').addEventListener('click', downloadDoc);
+document.getElementById('downloadPdfBtn').addEventListener('click', downloadPdf);
+
+
 
 function downloadExcel() {
   // 1) grab your live table HTML
@@ -584,6 +587,7 @@ clone.querySelectorAll('th, td').forEach(cell => {
   cell.style.border  = '1px solid black';
   cell.style.margin  = '0';    // removes extra spacing
   cell.style.padding = '0';    // tightens cell padding
+  cell.style.color   = 'black';
 });
 
 
@@ -595,6 +599,8 @@ clone.querySelectorAll('th, td').forEach(cell => {
   headerRow.querySelectorAll('th').forEach(th => {
     th.style.fontFamily = 'Cambria';
     th.style.fontSize   = '11pt';
+    th.style.color      = 'black';         // <— force header text black
+    th.style.border     = '1px solid black'; // <— ensure header borders too
   });
 
   // 3) row-group colouring & uniform Action-font sizing
@@ -669,6 +675,95 @@ const date  = `${day}-${month}-${year}`;
   a.click();
   URL.revokeObjectURL(url);
 }
+
+
+function downloadPdf() {
+  // 1) Clone the live table
+  const original = document.getElementById('liveTable');
+  const clone    = original.cloneNode(true);
+
+  // 2) Strip off its id (and any classes) so no page CSS bleeds in
+  clone.removeAttribute('id');
+  clone.querySelectorAll('*').forEach(el => el.removeAttribute('class'));
+
+  // 3) Table-level styling (no spacing, collapse all borders)
+  clone.style.borderCollapse = 'collapse';
+  clone.style.borderSpacing  = '0';
+  clone.style.margin         = '0';
+  clone.style.padding        = '0';
+
+  // 4) Cell-level styling (exactly 1px solid black, no padding/margin, black text)
+  clone.querySelectorAll('th, td').forEach(cell => {
+    cell.style.border  = '1px solid black';
+    cell.style.margin  = '0';
+    cell.style.padding = '0';
+    cell.style.color   = 'black';
+  });
+
+  // 5) Header-row override (must exactly match your DOC export)
+
+const headerRow = clone.querySelector('thead tr');
+headerRow.querySelectorAll('th').forEach(th => {
+  th.style.backgroundColor = '#a7abb7';    // ← this hex code
+  th.style.color          = 'black';
+  th.style.border         = '1px solid black';
+  th.style.fontFamily     = 'Cambria';
+  th.style.fontSize       = '11pt';
+});
+
+
+  // 6) Row-group colouring & font sizing (same as downloadDoc)
+  const rows   = Array.from(clone.querySelectorAll('tbody tr'));
+  const colors = [
+    '#f0f8ff','#fafad2','#e6e6fa','#fff0f5',
+    '#f0fff0','#f5f5f5','#fffaf0','#f5fffa',
+    '#f5f5dc','#f0ffff'
+  ];
+  let lastEq     = null;
+  let currentEq  = null;
+  let colorIndex = -1;
+
+  rows.forEach(tr => {
+    const eqCell = tr.querySelector('td[rowspan]');
+    if (eqCell) {
+      lastEq    = eqCell.textContent;
+      currentEq = null;      // new group ⇒ advance colour
+    }
+    if (lastEq !== currentEq) {
+      currentEq  = lastEq;
+      colorIndex = (colorIndex + 1) % colors.length;
+    }
+    Array.from(tr.cells).forEach((td, colIdx, all) => {
+      td.style.backgroundColor = colors[colorIndex];
+      td.style.fontFamily      = 'Cambria';
+      td.style.fontSize        = (colIdx === all.length - 1) ? '9pt' : '11pt';
+    });
+  });
+
+  // 7) Build filename
+  const sub   = localStorage.getItem('selectedSubstation') || 'Unknown';
+  const now   = new Date();
+  const dd    = String(now.getDate()).padStart(2, '0');
+  const mm    = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy  = now.getFullYear();
+  const filename = `Ultrasound_${sub}_${dd}-${mm}-${yyyy}.pdf`;
+
+  // 8) Finally, hand off to html2pdf
+  html2pdf()
+    .set({
+      margin:       [10,10,10,10],
+      filename:     filename,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'pt', format: 'a4', orientation: 'landscape' }
+    })
+    .from(clone)
+    .save();
+}
+
+
+
+
 
 
 
