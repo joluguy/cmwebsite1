@@ -101,6 +101,18 @@ const prompt2Maps = {
 // — persist custom live-table actions —
 let manualActions = JSON.parse(localStorage.getItem('ultrasoundActions') || '{}');
 
+// — persist entire live-table HTML —
+function saveLiveTableHTML() {
+  const html = document.querySelector('#liveTable tbody').innerHTML;
+  localStorage.setItem('ultrasoundLiveTableHTML', html);
+}
+
+function loadLiveTableHTML() {
+  const html = localStorage.getItem('ultrasoundLiveTableHTML');
+  if (html) {
+    document.querySelector('#liveTable tbody').innerHTML = html;
+  }
+}
 
 
 // === Helpers ===
@@ -147,11 +159,16 @@ function addRow() {
       updatePrecise(this, tdPrec);
     }
     // if “Other”: manual
-    if (this.value==='Other') {
-      const inp = document.createElement('input');
-      inp.type='text'; inp.placeholder='Enter Equipment Details';
-      this.replaceWith(inp);
-    }
+if (this.value==='Other') {
+  const inp = document.createElement('input');
+  inp.type        = 'text';
+  inp.placeholder = 'Enter Equipment Details';
+  // immediately re-run Precise-location logic whenever you finish typing
+  inp.addEventListener('change', () => updatePrecise(inp, tdPrec));
+  // immediately refresh the live table as you type
+  inp.addEventListener('input', renderLive);
+  this.replaceWith(inp);
+}
 
 
   // — new: disable Side dropdown when appropriate —
@@ -172,11 +189,15 @@ function addRow() {
   // Location
   const tdLoc = document.createElement('td');
   const selLoc = createDropdown(locationOptions, function(){
-    if (this.value==='Other'){
-      const inp=document.createElement('input');
-      inp.type='text'; inp.placeholder='Enter location';
-      this.replaceWith(inp);
-    }
+if (this.value==='Other') {
+  const inp = document.createElement('input');
+  inp.type        = 'text';
+  inp.placeholder = 'Enter location';
+  // refresh live table on every keystroke
+  inp.addEventListener('input', renderLive);
+  this.replaceWith(inp);
+}
+
     renderLive();
   });
   tdLoc.append(selLoc); tr.append(tdLoc);
@@ -188,11 +209,15 @@ function addRow() {
   // Side
   const tdSide = document.createElement('td');
   const selSide = createDropdown(sideOptions, function(){
-    if (this.value==='Other'){
-      const inp=document.createElement('input');
-      inp.type='text'; inp.placeholder='Enter side';
-      this.replaceWith(inp);
-    }
+if (this.value==='Other') {
+  const inp = document.createElement('input');
+  inp.type        = 'text';
+  inp.placeholder = 'Enter side';
+  // keep live table in sync
+  inp.addEventListener('input', renderLive);
+  this.replaceWith(inp);
+}
+
     renderLive();
   });
   tdSide.append(selSide); tr.append(tdSide);
@@ -236,6 +261,7 @@ selEq.addEventListener('change', function() {
 
   tbody.append(tr);
   renderLive();
+
 }
 
 function updatePrecise(sel, cell) {
@@ -243,11 +269,15 @@ function updatePrecise(sel, cell) {
   const opts = prompt2Maps.preciseMap[sel.value]||[];
   if (opts.length) {
     const dd = createDropdown(opts, function(){
-      if (this.value==='Other'){
-        const inp=document.createElement('input');
-        inp.type='text'; inp.placeholder='Enter precise';
-        this.replaceWith(inp);
-      }
+if (this.value==='Other') {
+  const inp = document.createElement('input');
+  inp.type        = 'text';
+  inp.placeholder = 'Enter precise';
+  // ← here’s the missing piece:
+  inp.addEventListener('input', renderLive);
+  this.replaceWith(inp);
+}
+
       renderLive();
     });
     cell.append(dd);
@@ -435,9 +465,23 @@ document.querySelectorAll('#liveTable tbody tr').forEach(row => {
 });
 localStorage.setItem('ultrasoundActions', JSON.stringify(actionsToSave));
 
+saveLiveTableHTML(); 
+
 
   alert('Data saved.');
 }
+
+// auto-save both form data and live-table HTML on page unload
+window.addEventListener('beforeunload', () => {
+  // 1) persist the form data exactly as Save button would
+  saveFormData();
+  // 2) persist the live-table HTML
+  saveLiveTableHTML();
+});
+
+
+
+
 
 function loadFormData(){
   const s=localStorage.getItem('ultrasoundData');
@@ -513,10 +557,121 @@ selEq.dispatchEvent(new Event('change'));
     updatePrecise(eqEl, r.cells[2]);
     // ── end Equipment Details rebuild ──
 
-    r.cells[1].querySelector('select,input').value = e.location;
-    updatePrecise(r.cells[0].querySelector('select,input'),r.cells[2]);
-    r.cells[2].querySelector('select,input').value = e.precise;
-    r.cells[3].querySelector('select,input').value = e.side;
+        // ── Location: rebuild select vs. manual input ──
+    {
+      const locCell = r.cells[1];
+      locCell.innerHTML = '';
+      if (locationOptions.includes(e.location)) {
+        // a predefined choice
+        const selLoc = createDropdown(locationOptions, function(){
+          if (this.value === 'Other') {
+            const inp = document.createElement('input');
+            inp.type = 'text'; inp.placeholder = 'Enter location';
+            this.replaceWith(inp);
+          }
+          renderLive();
+        });
+        selLoc.value = e.location;
+        locCell.appendChild(selLoc);
+      } else {
+        // a user-typed “Other”
+        const inpLoc = document.createElement('input');
+        inpLoc.type = 'text';
+        inpLoc.placeholder = 'Enter location';
+        inpLoc.value = e.location;
+        inpLoc.addEventListener('input', renderLive);
+        locCell.appendChild(inpLoc);
+      }
+    }
+
+    // ── Precise Location: rebuild select vs. manual input ──
+    {
+      const eqVal    = r.cells[0].querySelector('select,input').value;
+      const opts     = prompt2Maps.preciseMap[eqVal] || [];
+      const precCell = r.cells[2];
+      precCell.innerHTML = '';
+
+      if (opts.length && opts.includes(e.precise)) {
+        // predefined precise choice
+        const selPrec = createDropdown(opts, function(){
+if (this.value==='Other') {
+  const inp = document.createElement('input');
+  inp.type        = 'text';
+  inp.placeholder = 'Enter precise';
+  // refresh live table as you type new precise text
+  inp.addEventListener('input', renderLive);
+  this.replaceWith(inp);
+}
+
+          renderLive();
+        });
+        selPrec.value = e.precise;
+        precCell.appendChild(selPrec);
+
+      } else if (opts.length) {
+        // the user originally picked “Other” → show manual input
+        const inpPrec = document.createElement('input');
+        inpPrec.type = 'text';
+        inpPrec.placeholder = 'Enter precise';
+        inpPrec.value = e.precise;
+        inpPrec.addEventListener('input', renderLive);
+        precCell.appendChild(inpPrec);
+
+      } else {
+        // no predefined opts for this equipment → always text input
+        const inpPrec = document.createElement('input');
+        inpPrec.type = 'text';
+        inpPrec.placeholder = 'Enter precise location';
+        inpPrec.value = e.precise;
+        inpPrec.addEventListener('input', renderLive);
+        precCell.appendChild(inpPrec);
+      }
+    }
+
+      // ── Side: rebuild select vs. manual input ──
+  {
+    const sideCell = r.cells[3];
+    sideCell.innerHTML = '';
+
+    if (sideOptions.includes(e.side)) {
+      // predefined option → recreate dropdown
+      const selSide = createDropdown(sideOptions, function(){
+        if (this.value === 'Other') {
+          const inp = document.createElement('input');
+          inp.type = 'text';
+          inp.placeholder = 'Enter side';
+          this.replaceWith(inp);
+        }
+        renderLive();
+      });
+      selSide.value = e.side;
+      sideCell.appendChild(selSide);
+
+      // re-attach Equipment→Side disable logic
+      const selEq = r.cells[0].querySelector('select,input');
+      const disableFor = ['33KV CT','33KV PT','33KV VCB','Bushing','Lightning Arrestor'];
+      selEq.addEventListener('change', function(){
+        if (disableFor.includes(this.value)) {
+          selSide.disabled = true;
+          selSide.value = '';
+        } else {
+          selSide.disabled = false;
+        }
+      });
+      // enforce its initial state
+      selEq.dispatchEvent(new Event('change'));
+
+    } else {
+      // custom “Other” → plain text input
+      const inpSide = document.createElement('input');
+      inpSide.type        = 'text';
+      inpSide.placeholder = 'Enter side';
+      inpSide.value       = e.side;
+      inpSide.addEventListener('input', renderLive);
+      sideCell.appendChild(inpSide);
+    }
+  }
+
     ['R','Y','B','N'].forEach((k,i)=>{
       const f=r.cells[4+i].firstChild;
       f.querySelector('input[type=number]').value       = e[k].value;
@@ -762,6 +917,10 @@ headerRow.querySelectorAll('th').forEach(th => {
 }
 
 
+// whenever any cell in the live table is edited, save its HTML
+document
+  .querySelector('#liveTable tbody')
+  .addEventListener('input', saveLiveTableHTML);
 
 
 
