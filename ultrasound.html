@@ -78,7 +78,7 @@
 
   <div class="live-table-container">
     <h2>Ultrasonic PD Measurements</h2>
-    <table id="liveTable">
+    <table id="liveTable" contenteditable="true">
       <thead>
         <tr>
           <th>Sl. No.</th><th>Equipment Details</th><th>Location</th>
@@ -107,6 +107,9 @@
     if (!localStorage.getItem('ultrasoundData')) {
       addRow();
     }
+
+    loadLiveTableHTML();
+
   };
 </script>
 
