@@ -33,6 +33,24 @@
       button { width:100%; }
       .header { font-size:12px }
     }
+
+
+/* ↓ feeder-isolator checkboxes & labels smaller ↓ */
+.feeder-cb-container {
+  font-size: 10px;            /* shrink label text */
+}
+.feeder-cb-container label {
+  margin-right: 8px;          /* space between boxes */
+}
+.feeder-cb-container input[type="checkbox"] {
+  transform: scale(0.75);     /* shrink the box itself */
+  margin-right: 4px;          /* fine-tune gap before label text */
+  vertical-align: middle;     /* keep checkbox aligned with text */
+}
+
+
+
+
   </style>
 </head>
 <body>
@@ -94,4 +112,5 @@
   <script src="hotspot.js"></script>
 </body>
 </html>
+
 
