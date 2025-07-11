@@ -12,7 +12,7 @@ const oilLeakCols = [
 ];
 const otherCols = [
   ['Air-Oil Mix','M.Tank Silica Gel','OLTC Silica Gel','M. Tank Oil Low','OLTC Oil Low','PTR Oil Check','Low Oil on M. Tank Breather Oil Pot','Low Oil on OLTC Breather Oil Pot','M. Tank Breather Oil Pot Empty','OLTC Breather Oil Pot Empty','Broken M. Tank Breather Oil Pot','Broken OLTC Breather Oil Pot','M. Tank Breather Oil Pot Missing','OLTC Breather Oil Pot Missing'],
-  ['OTI >WTI','OTI=WTI','OTI Def.','WTI Def.','M. Tank Breather S. Gel.','OLTC Breather S. Gel.','MOG Def.','MOG Conn. Open','POG not Visible','MK Box Glass Cover Missing','MK Box Glass Cover Broken'],
+  ['OTI >WTI','OTI=WTI','OTI Def.','WTI Def.','MOG Def.','MOG Conn. Open','POG not Visible','MK Box Glass Cover Missing','MK Box Glass Cover Broken'],
   ['MK Box Flat Earthing','OLTC Flat Earthing','Neutral Double Flat Earthing','PTR Body Rusted','PTR Radiator Rusted','PTR Con. Tank Rusted'],
   ['OLTC Count']
 ];
@@ -1656,6 +1656,21 @@ function styleTableForExport(table) {
 }
 
 
+// Get the selected substation and format today’s date as DD.MM.YYYY
+const subName = localStorage.getItem('selectedSubstation') || '';
+function getFormattedDate() {
+  const now = new Date();
+  const dd  = String(now.getDate()).padStart(2,'0');
+  const mm  = String(now.getMonth() + 1).padStart(2,'0');
+  const yy  = now.getFullYear();
+  return `${dd}.${mm}.${yy}`;
+}
+
+
+
+
+
+
 
 
 
@@ -1666,7 +1681,11 @@ function exportExcel() {
     document.getElementById('liveTable'),
     { sheet: 'Findings' }
   );
-  XLSX.writeFile(wb, `VisualFindings_${new Date().toISOString().slice(0,10)}.xlsx`);
+  // inside exportExcel()
+const dateStr = getFormattedDate();
+XLSX.writeFile(wb,`Visualfindings_${subName}_${dateStr}.xlsx`
+);
+
 }
 
 function exportDoc() {
@@ -1705,7 +1724,11 @@ function exportDoc() {
   const blob = window.htmlDocx.asBlob(html);
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `VisualFindings_${new Date().toISOString().slice(0,10)}.docx`;
+
+  // inside exportDoc()
+const dateStr = getFormattedDate();
+link.download = `Visualfindings_${subName}_${dateStr}.docx`;
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -1786,7 +1809,11 @@ function exportPdf() {
 
   // 6) Cleanup & save
   document.body.removeChild(container);
-  doc.save(`VisualFindings_${new Date().toISOString().slice(0,10)}.pdf`);
+  // inside exportPdf()
+const dateStr = getFormattedDate();
+doc.save(`Visualfindings_${subName}_${dateStr}.pdf`
+);
+
 }
 
 
